@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import yaml
+import time
 
 import argparse
 from models import *
@@ -17,6 +18,8 @@ from utilities.util import graph_to_tensor
 from utilities.output_results import output_to_images
 from utilities.metrics import auc_scores
 
+# Define timer list to report running statistics
+timing_dict = {"forward": [], "backward": [], "generate_image": []}
 
 def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, optimizer=None):
 	bsize = max(config["general"]["batch_size"], 1)
@@ -28,6 +31,10 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 	all_scores = []
 
 	n_samples = 0
+
+	# Create temporary timer dict to store timing data for this loop
+	temp_timing_dict = {"forward": [], "backward": []}
+
 	for pos in pbar:
 		selected_idx = sample_idxes[pos * bsize: (pos + 1) * bsize]
 
@@ -51,21 +58,25 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 			labels = labels.cuda()
 
 		# Perform training
+		start_forward = time.perf_counter()
 		output = classifier(node_feat, n2n, subg, batch_graph)
 		logits = F.log_softmax(output, dim=1)
 		prob = F.softmax(logits, dim=1)
 
 		# Calculate accuracy and loss
 		loss = F.nll_loss(logits, labels)
+		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
 		pred = logits.data.max(1, keepdim=True)[1]
 		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() / float(labels.size()[0])
 		all_scores.append(prob.cpu().detach())  # for classification
 
 		# Back propagation
 		if optimizer is not None:
+			start_backward = time.perf_counter()
 			optimizer.zero_grad()
 			loss.backward()
 			optimizer.step()
+			temp_timing_dict["backward"].append(time.perf_counter() - start_backward)
 
 		loss = loss.data.cpu().detach().numpy()
 		pbar.set_description('loss: %0.5f acc: %0.5f' % (loss, acc) )
@@ -79,6 +90,11 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 
 	roc_auc, prc_auc = auc_scores(all_targets, all_scores)
 	avg_loss = np.concatenate((avg_loss, [roc_auc], [prc_auc]))
+
+	# Append loop average to global timer tracking list. Only for training phase
+	if optimizer is not None:
+		timing_dict["forward"].append(sum(temp_timing_dict["forward"])/ len(temp_timing_dict["forward"]))
+		timing_dict["backward"].append(sum(temp_timing_dict["backward"])/ len(temp_timing_dict["backward"]))
 	
 	return avg_loss
 
@@ -120,7 +136,9 @@ if __name__ == '__main__':
 	if cmd_args.retrain == '0':
 		# Load classifier if it exists:
 		try:
-			classifier_model = torch.load("tmp/saved_models/%s_%s.pth" % (dataset_features["name"], cmd_args.gm))
+			classifier_model = torch.load("tmp/saved_models/%s_%s_epochs_%s_learnrate_%s.pth" %
+				   (dataset_features["name"], cmd_args.gm,
+					str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
 		except FileNotFoundError:
 			print("Retrain is disabled but no such save of %s for dataset %s exists in tmp/saved_models folder. "
 				  "Please Retry run with -retrain enabled." % (dataset_features["name"], cmd_args.gm))
@@ -170,10 +188,13 @@ if __name__ == '__main__':
 				epoch, test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
 
 		print("Saving trained model %s for dataset %s" % (dataset_features["name"], cmd_args.gm))
-		torch.save(classifier_model, "tmp/saved_models/%s_%s.pth" % (dataset_features["name"], cmd_args.gm))
+		torch.save(classifier_model, "tmp/saved_models/%s_%s_epochs_%s_learnrate_%s.pth" %
+				   (dataset_features["name"], cmd_args.gm,
+					str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
 
 	# Begin performing interpretability methods ========================================================================
 	interpretability_methods_config = config["interpretability_methods"]
+	start_image = time.perf_counter()
 	for method in config["interpretability_methods"].keys():
 		print("Running method: " + str(method))
 		exec_string = "output = %s(classifier_model, config[\"interpretability_methods\"][\"%s\"], dataset_features, " \
@@ -181,13 +202,19 @@ if __name__ == '__main__':
 		exec(exec_string)
 
 	# Create heatmap from output =======================================================================================
-	output_to_images(output, dataset_features, output_directory="results/image")
+	output_count = output_to_images(output, dataset_features, output_directory="results/image")
+	print("Generated %s saliency map images." % output_count)
+	timing_dict["generate_image"] = time.perf_counter() - start_image
 
-	if config["general"]["extract_features"]:
-		features, labels = classifier_model.output_features(train_graphs)
-		labels = labels.type('torch.FloatTensor')
-		np.savetxt('extracted_features_train.txt', torch.cat([labels.unsqueeze(1), features.cpu()], dim=1).detach().numpy(), '%.4f')
-		features, labels = classifier_model.output_features(test_graphs)
-		labels = labels.type('torch.FloatTensor')
-		np.savetxt('extracted_features_test.txt', torch.cat([labels.unsqueeze(1), features.cpu()], dim=1).detach().numpy(), '%.4f')
-		
+	# Print run statistics =======================================================================================
+	run_statistics_string = ""
+	if len(timing_dict["forward"]) > 0:
+		run_statistics_string += "Average forward propagation time taken(ms): %s\n" % str(sum(timing_dict["forward"])/\
+			len(timing_dict["forward"]) * 1000)
+	run_statistics_string += "Average backward propagation time taken(ms): %s\n" % str(sum(timing_dict["backward"]) / \
+							 len(timing_dict["backward"])* 1000)
+	run_statistics_string += "Average time taken to generate saliency map(ms): %s\n" % str(timing_dict["generate_image"] / \
+							 output_count * 1000)
+
+	print(run_statistics_string)
+
