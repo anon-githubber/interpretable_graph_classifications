@@ -4,7 +4,7 @@ import json
 
 from os import path
 from captum.attr import DeepLift
-from utilities.util import graph_to_tensor
+from utilities.util import graph_to_tensor, normalize_scores
 
 def get_isomorphic_pairs(dataset_name, graph_list, max_pairs=5):
 	'''
@@ -89,14 +89,10 @@ def DeepLIFT(classifier_model, config, dataset_features, graph_list_inputs, cuda
 		sampled_graphs = {}
 
 		for label in range(dataset_features["num_class"]):
-			i = 0
 			class_sampled_graphs = []
 			for GNNgraph in graph_list_inputs:
-				if i == config["number_of_zero_tensor_samples"]:
-					break
-				elif int(GNNgraph.label) == int(label):
+				if int(GNNgraph.label) == int(label):
 					class_sampled_graphs.append(GNNgraph)
-					i += 1
 			sampled_graphs[label] = class_sampled_graphs
 
 		# Get deeplift score from sampled graphs
@@ -112,6 +108,7 @@ def DeepLIFT(classifier_model, config, dataset_features, graph_list_inputs, cuda
 										   additional_forward_args=(n2n, subg, [graph_sample]),
 										   target=label)
 				attribution_score = torch.sum(attribution, dim=1)
+				attribution_score = normalize_scores(attribution_score, -1, 1)
 				attribution_score_list.append((graph_sample, attribution_score))
 
 			output["deeplift_zero_tensor_class_" + str(i)] = attribution_score_list
@@ -151,7 +148,9 @@ def DeepLIFT(classifier_model, config, dataset_features, graph_list_inputs, cuda
 					target=label)
 
 				attribution_score_0 = torch.sum(attribution_0, dim=1)
+				attribution_score_0 = normalize_scores(attribution_score_0, -1, 1)
 				attribution_score_1 = torch.sum(attribution_1, dim=1)
+				attribution_score_1 = normalize_scores(attribution_score_1, -1, 1)
 
 				attribution_score_list_0.append((graph_0, attribution_score_0))
 				attribution_score_list_1.append((graph_1, attribution_score_1))
