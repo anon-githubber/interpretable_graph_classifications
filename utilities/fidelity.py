@@ -7,10 +7,10 @@ import random
 from copy import deepcopy
 
 
-def get_accuracy(classified_classes, label):
+def get_accuracy(classified_classes, labels):
     count = 0
-    for classified_class in classified_classes:
-        if classified_class == label:
+    for idx, classified_class in enumerate(classified_classes):
+        if classified_class == labels[idx]:
             count += 1
     return count/len(classified_classes)
 
@@ -64,25 +64,23 @@ def get_fidelity_graph(GNNgraph_list, scores_list, importance_ranges):
 
 def measure_fidelity(classifier_model, sampled_graphs, node_scores_list, dataset_features, importance_ranges=[(0.5, 1)], use_gpu=0):
     fidelities = []
-    for label, graph_list in sampled_graphs.items():
-        # measure initial accuracy
-        classified_classes = get_class_prob(
-            deepcopy(graph_list), classifier_model, dataset_features, use_gpu) 
-        initial_accuracy = get_accuracy(classified_classes, label)
+    labels = [graph.label for graph in sampled_graphs]
+    # measure initial accuracy
+    classified_classes = get_class_prob(
+        deepcopy(sampled_graphs), classifier_model, dataset_features, use_gpu)
+    initial_accuracy = get_accuracy(classified_classes, labels)
 
-        # occlude salient nodes
-        fidelity_graphs = get_fidelity_graph(
-            deepcopy(graph_list), node_scores_list, importance_ranges)
+    # occlude salient nodes
+    fidelity_graphs = get_fidelity_graph(
+        deepcopy(sampled_graphs), node_scores_list, importance_ranges)
 
-        # measure final accuracy
-        classified_classes = get_class_prob(
-            deepcopy(fidelity_graphs), classifier_model, dataset_features, use_gpu)
-        final_accuracy = get_accuracy(classified_classes, label)
-        fidelities.append(
-            initial_accuracy-final_accuracy)
+    # measure final accuracy
+    classified_classes = get_class_prob(
+        deepcopy(fidelity_graphs), classifier_model, dataset_features, use_gpu)
+    final_accuracy = get_accuracy(classified_classes, labels)
+    fidelities.append(
+        initial_accuracy-final_accuracy)
 
     avg_fidelity_score = sum(fidelities)/len(fidelities)
     std_dev = stdev(fidelities)
     return avg_fidelity_score, std_dev
-    # print('Fidelity score: %.5f ± %.5f' %
-    #       (avg_fidelity_score, std_dev))

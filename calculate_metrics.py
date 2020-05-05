@@ -146,15 +146,6 @@ if __name__ == '__main__':
         print("Please use trained model to measure metrics")
         exit()
 
-    # Get samples for explanation methods
-    sampled_graphs = {}
-    for graph in train_graphs + test_graphs:
-        label = str(graph.label)
-        if label in sampled_graphs:
-            sampled_graphs[label].append(graph)
-        else:
-            sampled_graphs[label] = [graph]
-
     # Begin performing interpretability methods ========================================================================
     interpretability_methods_config = config["interpretability_methods"]
     for method in config["interpretability_methods"].keys():
@@ -168,6 +159,6 @@ if __name__ == '__main__':
         metrics = [k for k in metrics if metrics[k]]
         for metric in metrics:
             score, sd = measure_fidelity(classifier_model, deepcopy(
-                sampled_graphs), output, dataset_features)
+                train_graphs + test_graphs), output, dataset_features)
             print("Measured %s for %s + %s: %.5f ± %.5f" %
                   (metric, cmd_args.gm, method, score, sd))
