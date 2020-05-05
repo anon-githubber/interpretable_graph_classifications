@@ -16,7 +16,7 @@ from copy import deepcopy
 from utilities.load_data import load_model_data
 from utilities.util import graph_to_tensor
 from utilities.output_results import output_to_images
-from utilities.metrics import auc_scores
+from utilities.metrics import auc_scores, compute_metric
 from utilities.fidelity import measure_fidelity
 
 
@@ -158,7 +158,6 @@ if __name__ == '__main__':
         metrics = config["metrics"]
         metrics = [k for k in metrics if metrics[k]]
         for metric in metrics:
-            score, sd = measure_fidelity(classifier_model, deepcopy(
-                train_graphs + test_graphs), output, dataset_features)
+            score, sd = compute_metric(metric, deepcopy(train_graphs + test_graphs), classifier_model, method, dataset_features, output, config, [(0.5, 1), (-1, -0.5)], cmd_args.cuda)
             print("Measured %s for %s + %s: %.5f ± %.5f" %
                   (metric, cmd_args.gm, method, score, sd))
