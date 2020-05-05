@@ -4,10 +4,10 @@ general:
   batch_size: 1
   extract_features: False
 train:
-  num_epochs : 50
+  num_epochs : 300
   learning_rate : 0.0001
 test:
-  seed: 1337
+  seed: 1800
   k_fold: 10
   test_number: 0
 GNN_models:

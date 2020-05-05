@@ -64,7 +64,9 @@ def unserialize_pickle(dataset_name):
 			for node in nxgraph.nodes:
 				node_label = str(nxgraph.nodes[node]['label'])
 				node_labels.append(node_labels_mapping_dict[node_label])
+			node_label_flag = True
 		else:
+			node_label_flag = False
 			node_labels = None
 
 		# Get node features/attributes
@@ -81,7 +83,7 @@ def unserialize_pickle(dataset_name):
 
 		graph_list.append(GNNGraph(nxgraph, graph_label, node_labels, node_features))
 
-	return graph_list, graph_labels_mapping_dict, node_labels_mapping_dict, node_feature_flag
+	return graph_list, graph_labels_mapping_dict, node_labels_mapping_dict, node_label_flag, node_feature_flag
 
 # load_data(): Loads pickled dataset
 def load_model_data(dataset_name, k_fold=1, test_number=0,
@@ -98,7 +100,7 @@ def load_model_data(dataset_name, k_fold=1, test_number=0,
 	print('load_data.py load_model_data(): Unserialising pickled dataset into Graph objects')
 
 	# Perform unserialisation
-	graph_list, graph_labels_mapping_dict, node_labels_mapping_dict, node_feature_flag =\
+	graph_list, graph_labels_mapping_dict, node_labels_mapping_dict, node_label_flag, node_feature_flag =\
 		unserialize_pickle(dataset_name)
 
 	# Count the number of labels, and form a graph label list for kfold split later
@@ -135,6 +137,8 @@ def load_model_data(dataset_name, k_fold=1, test_number=0,
 	dataset_features['name'] = dataset_name
 	dataset_features['num_class'] = len(graph_labels_mapping_dict)
 	dataset_features['label_dict'] = graph_labels_mapping_dict
+	dataset_features['have_node_labels'] = node_label_flag
+	dataset_features['have_node_attibution'] = node_feature_flag
 	dataset_features['node_dict'] = node_labels_mapping_dict
 	dataset_features['feat_dim'] = len(node_labels_mapping_dict)
 	dataset_features['edge_feat_dim'] = 0

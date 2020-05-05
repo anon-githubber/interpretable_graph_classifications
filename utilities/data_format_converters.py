@@ -4,8 +4,9 @@ import os
 import pickle
 import pprint
 import torch
+import random
 
-def callgraph_to_networkx(dataset_name, goodware_file_directory, malware_file_directory):
+def callgraph_to_networkx(goodware_file_directory, malware_file_directory):
 	list_of_goodware_graphs = pickle.load(open(goodware_file_directory, "rb"))
 	list_of_malware_graphs = pickle.load(open(malware_file_directory, "rb"))
 
@@ -73,6 +74,64 @@ def callgraph_to_networkx(dataset_name, goodware_file_directory, malware_file_di
 		return nxgraph_list
 
 	return iterate_graphs(list_of_goodware_graphs, 0) + iterate_graphs(list_of_malware_graphs, 1)
+
+
+def combine_PTC(path_to_data_folder):
+	PTC_MM_list = dortmund_to_networkx(path_to_data_folder + "/PTC_MM", "PTC_MM")
+	PTC_FM_list = dortmund_to_networkx(path_to_data_folder + "/PTC_FM", "PTC_FM")
+	PTC_MR_list = dortmund_to_networkx(path_to_data_folder + "/PTC_MR", "PTC_MR")
+	PTC_FR_list = dortmund_to_networkx(path_to_data_folder + "/PTC_FR", "PTC_FR")
+
+	for nxgraph in PTC_FM_list:
+		if nxgraph.graph['label'] == 1:
+			nxgraph.graph['label'] = 2
+
+	for nxgraph in PTC_MR_list:
+		if nxgraph.graph['label'] == 1:
+			nxgraph.graph['label'] = 3
+
+	for nxgraph in PTC_FR_list:
+		if nxgraph.graph['label'] == 1:
+			nxgraph.graph['label'] = 4
+
+	combined_nxgraph_list = PTC_MM_list + PTC_FM_list + PTC_MR_list + PTC_FR_list
+
+	# Remove those with label of 0
+	nxgraph_list_without_label_zero = []
+	for nxgraph in combined_nxgraph_list:
+		if nxgraph.graph["label"] != 0:
+			nxgraph_list_without_label_zero.append(nxgraph)
+
+	return nxgraph_list_without_label_zero
+
+def subset_dataset(nxgraph_list, distribution_list):
+	distribution_list = distribution_list.split(",")
+
+	# Get labels of dataset
+	graph_label_list = []
+	for nxgraph in nxgraph_list:
+		graph_label_list.append(nxgraph.graph["label"])
+
+	graph_label_set = sorted(set(graph_label_list))
+
+	# Check if number of elements in distribution list correspond with the number of graph labels found
+	if len(graph_label_set) != len(distribution_list):
+		print("Unable to create data subset, distribution list supplied does "
+			  "not match number of classes found in dataset")
+		return None
+
+	output_nxgraph_list = [[] for _ in range(len(graph_label_set))]
+
+	for nxgraph in nxgraph_list:
+		output_nxgraph_list[graph_label_set.index(nxgraph.graph["label"])].append(nxgraph)
+
+	for i in range(len(output_nxgraph_list)):
+		random.shuffle(output_nxgraph_list[i])
+		output_nxgraph_list[i] = output_nxgraph_list[i][:int(distribution_list[i])]
+
+	return [nxgraph for nxgraph_sublist in output_nxgraph_list for nxgraph in nxgraph_sublist]
+
+
 
 def dortmund_to_networkx(folder_directory, dataset_name):
 
@@ -169,11 +228,16 @@ if __name__ == '__main__':
 	cmd_opt.add_argument('-outpath', default='default', help='Path to output the serialized pickle file,'
 															 ' default is the same as input path. Must be specified '
 															 'when format is adhoc')
+	cmd_opt.add_argument('-distribution', default='0', help='Define the distribution of the subset, '
+																  'separated by comma and ordered according to the'
+																  ' value of graph labels')
 
 	cmd_opt.add_argument('-adhocfunc', help='Specify which adhoc data formatting function to use')
 	cmd_opt.add_argument('-adhocparam', help='Specify what adhoc parameters to be passed to the adhoc function,'
-											  ' seperated by comma. First parameter must be dataset name')
+											  ' seperated by comma.')
 	cmd_args, _ = cmd_opt.parse_known_args()
+
+	random.seed(1800)
 
 	# If conversion is adhoc, ignore the standard procedure
 	if cmd_args.format == "adhoc":
@@ -206,6 +270,9 @@ if __name__ == '__main__':
 		else:
 			print("Invalid or no dataset format specified!")
 			exit()
+
+	if cmd_args.distribution != 0:
+		nxgraph_list = subset_dataset(nxgraph_list, cmd_args.distribution)
 
 	# Check validity of output path
 	if cmd_args.outpath == "default":
