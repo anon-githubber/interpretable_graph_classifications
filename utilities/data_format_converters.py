@@ -228,7 +228,7 @@ if __name__ == '__main__':
 	cmd_opt.add_argument('-outpath', default='default', help='Path to output the serialized pickle file,'
 															 ' default is the same as input path. Must be specified '
 															 'when format is adhoc')
-	cmd_opt.add_argument('-distribution', default='0', help='Define the distribution of the subset, '
+	cmd_opt.add_argument('-distribution', help='Define the distribution of the subset, '
 																  'separated by comma and ordered according to the'
 																  ' value of graph labels')
 
@@ -271,7 +271,7 @@ if __name__ == '__main__':
 			print("Invalid or no dataset format specified!")
 			exit()
 
-	if cmd_args.distribution != 0:
+	if cmd_args.distribution is not None:
 		nxgraph_list = subset_dataset(nxgraph_list, cmd_args.distribution)
 
 	# Check validity of output path

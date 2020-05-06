@@ -52,7 +52,9 @@ def unserialize_pickle(dataset_name):
 		node_labels_mapping_dict[str(node_label)] = j
 		j += 1
 
+
 	# Extract graph labels
+	graph_id = 0
 	for nxgraph in nxgraph_list:
 		# Get graph label
 		graph_label = graph_labels_mapping_dict[str(nxgraph.graph['label'])]
@@ -81,7 +83,8 @@ def unserialize_pickle(dataset_name):
 			node_feature_flag = False
 			node_features = None
 
-		graph_list.append(GNNGraph(nxgraph, graph_label, node_labels, node_features))
+		graph_list.append(GNNGraph(graph_id, nxgraph, graph_label, node_labels, node_features))
+		graph_id += 1
 
 	return graph_list, graph_labels_mapping_dict, node_labels_mapping_dict, node_label_flag, node_feature_flag
 
