@@ -160,6 +160,9 @@ if __name__ == '__main__':
         metrics = config["metrics"]
         metrics = [k for k in metrics if metrics[k]]
         for metric in metrics:
-            score, sd = compute_metric(metric, deepcopy(train_graphs + test_graphs), classifier_model, method, dataset_features, output, config, [(0.5, 1), (-1, -0.5)], cmd_args.cuda)
+            importance_range = [(0.5, 1), (-1, -0.5)
+                                ] if metric == 'DeepLIFT' else [(0.5, 1)]
+            score, sd = compute_metric(metric, deepcopy(train_graphs + test_graphs), classifier_model,
+                                       method, dataset_features, output, config, importance_range, cmd_args.cuda)
             print("Measured %s for %s + %s: %.5f ± %.5f" %
                   (metric, cmd_args.gm, method, score, sd))
