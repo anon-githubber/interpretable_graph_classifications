@@ -31,7 +31,11 @@ interpretability_methods:
     number_of_isomorphic_sample_pairs: 5
 metrics:
   fidelity:
+    enabled: False
+    importance_range: 0.5,1
+  contrastivity:
     enabled: True
     importance_range: 0.5,1
-  contrastivity: False
-  sparsity: False
+  sparsity:
+    enabled: True
+    importance_range: 0.5,1

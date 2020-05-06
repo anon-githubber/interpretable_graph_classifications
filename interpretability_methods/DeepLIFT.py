@@ -9,37 +9,41 @@ from copy import deepcopy
 from captum.attr import DeepLift
 from utilities.util import graph_to_tensor, normalize_scores
 
-def get_isomorphic_pairs(dataset_name, graph_list, max_pairs=5):
+def get_isomorphic_pairs(dataset_name, graph_list, k_fold, current_fold, max_pairs=5):
 	'''
 		Get isomorphic pairs to serve as a baseline to be used in DeepLIFT
 	:param data_file_name: name of the dataset
 	:param graph_list: a list of graphs to obtain isomorphic pairs
+	:param k_fold: the number of k folds used in this dataset, to account for isomorphic index changing every fold
 	:param max_pairs: max number of pairs to find. Set this to be low to decrease execution time
 	:return: two sets of list that contain indices of the isomorphic graphs
 	'''
 
 	# Check if temporary file storing isomorphic pairs exist.
 	# This is used to reduce time for repeated experiments
-	if path.exists("tmp/deeplift/isopairs_" + dataset_name + ".json"):
-		with open("tmp/deeplift/isopairs_" + dataset_name + ".json", 'r') as f:
-			indexes = json.load(f)
+	indexes_by_fold = {}
+	if path.exists("tmp/deeplift/isopairs_%s_folds_%s.json" % (dataset_name, k_fold)):
+		with open("tmp/deeplift/isopairs_%s_folds_%s.json" % (dataset_name, k_fold), 'r') as f:
+			indexes_by_fold = json.load(f)
+			f.close()
 
-		class_0_indices = indexes[0]
-		class_1_indices = indexes[1]
+		if str(current_fold) in indexes_by_fold.keys():
+			class_0_indices = indexes_by_fold[str(current_fold)][0]
+			class_1_indices = indexes_by_fold[str(current_fold)][1]
 
-		# Check if existing isomorphic pairs found is greater than the max pairs needed
-		if len(class_0_indices) == 0:
-			# If no isomorphic pairs stored, return None
-			return None, None
-		elif len(class_0_indices) == max_pairs:
-			# If exact, return as is
-			return [graph_list[i] for i in class_0_indices], [graph_list[i] for i in class_1_indices]
-		elif len(class_0_indices) > max_pairs:
-			# If more pairs than required, slice
-			return [graph_list[i] for i in class_0_indices[:max_pairs-1]],\
-				   [graph_list[i] for i in class_1_indices[:max_pairs-1]]
+			# Check if existing isomorphic pairs found is greater than the max pairs needed
+			if len(class_0_indices) == 0:
+				# If no isomorphic pairs stored, return None
+				return None, None
+			elif len(class_0_indices) <= max_pairs:
+				# If exact or less than required, return as is
+				return [graph_list[i] for i in class_0_indices], [graph_list[i] for i in class_1_indices]
+			elif len(class_0_indices) > max_pairs:
+				# If more pairs than required, slice
+				return [graph_list[i] for i in class_0_indices[:max_pairs-1]],\
+					   [graph_list[i] for i in class_1_indices[:max_pairs-1]]
 
-	# If no such file exist or less pairs found in files than required, then run loop to find isomorphic pairs
+	# If no such file exist, then run loop to find isomorphic pairs
 	# Split input graph set by class
 	i = 0
 	iso_graph_indices = [[], []]
@@ -73,13 +77,17 @@ def get_isomorphic_pairs(dataset_name, graph_list, max_pairs=5):
 					max_pairs_reached = True
 					break
 
-	with open("tmp/deeplift/isopairs_" + dataset_name + ".json", 'w') as f:
-		f.write(json.dumps([class_0_indices, class_1_indices]))
+	if pairs_found > 0:
+		indexes_by_fold[str(current_fold)] = [class_0_indices, class_1_indices]
+
+		with open("tmp/deeplift/isopairs_%s_folds_%s.json" % (dataset_name, k_fold), 'w') as f:
+			f.write(json.dumps(indexes_by_fold))
+			f.close()
 
 	# Return the graphs based on the index of the isomorphic pairs
 	return [graph_list[i] for i in class_0_indices], [graph_list[i] for i in class_1_indices]
 
-def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
+def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_fold, cuda=0):
 	'''
 		:param classifier_model: trained classifier model
 		:param config: parsed configuration file of config.yml
@@ -89,6 +97,7 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
 	'''
 	# Initialise settings
 	config = config
+	interpretability_config = config["interpretability_methods"]["DeepLIFT"]
 	dataset_features = dataset_features
 
 	# Perform deeplift on the classifier model
@@ -127,7 +136,7 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
 	execution_time = sum(tmp_timing_list)/(len(tmp_timing_list))
 
 	# Obtain attribution score for use in generating saliency map for comparison with zero tensors
-	if config["compare_with_zero_tensor"] is True:
+	if interpretability_config["compare_with_zero_tensor"] is True:
 		# Randomly sample from existing list:
 		graph_idxes = list(range(len(output_for_metrics_calculation)))
 		random.shuffle(graph_idxes)
@@ -138,20 +147,20 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
 		for index in graph_idxes:
 			tmp_label = output_for_metrics_calculation[index]['graph'].label
 			if len(output_for_generating_saliency_map["deeplift_zero_tensor_class_%s" % str(tmp_label)]) < \
-				config["number_of_zero_tensor_samples"]:
+				interpretability_config["number_of_zero_tensor_samples"]:
 				output_for_generating_saliency_map["deeplift_zero_tensor_class_%s" % str(tmp_label)].append(
 					(output_for_metrics_calculation[index]['graph'], output_for_metrics_calculation[index][tmp_label]))
 
 
 	# Obtain attribution score for use in generating saliency map for comparison with isomers
-	if config["compare_with_isomorphic_samples"] is True:
+	if interpretability_config["compare_with_isomorphic_samples"] is True:
 		if dataset_features["num_class"] != 2:
 			print("DeepLIFT.py: Comparing with isomorphic samples is only possible in binary classification tasks.")
 		else:
-			# Get all isomorphi pairs
+			# Get all isomorphic pairs
 			class_0_graphs, class_1_graphs = get_isomorphic_pairs(
-				dataset_features["name"], GNNgraph_list,
-				config["number_of_isomorphic_sample_pairs"])
+				dataset_features["name"], GNNgraph_list, config["run"]["k_fold"], current_fold,
+				interpretability_config["number_of_isomorphic_sample_pairs"])
 
 			# Generate attribution scores for the isomorphic pairs
 			if class_0_graphs == None:
@@ -161,6 +170,7 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
 			else:
 				output_for_generating_saliency_map["deeplift_isomorphic_class_0"] = []
 				output_for_generating_saliency_map["deeplift_isomorphic_class_1"] = []
+
 				for graph_0, graph_1 in zip(class_0_graphs, class_1_graphs):
 					node_feat_0, n2n, subg = graph_to_tensor(
 						[graph_0], dataset_features["feat_dim"],

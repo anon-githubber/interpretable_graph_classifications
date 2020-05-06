@@ -31,18 +31,13 @@ def auc_scores(all_targets, all_scores):
 
 	return roc_auc, prc_auc
 
-
-def compute_metric(trained_classifier_model, GNNGraph_list, metric_attribution_score, dataset_features, config, cuda):
-	if config["metrics"]["fidelity"]["enabled"] is True:
-		fidelity_metric = get_fidelity(trained_classifier_model, metric_attribution_score, dataset_features,
-						config, cuda)
-
-
+# Fidelity ====================================================================
 def get_accuracy(trained_classifier_model, GNNgraph_list, dataset_features, cuda):
 	trained_classifier_model.eval()
 	true_equal_pred_pairs = []
 
-	# Instead of sending the whole list as batch, do it one by one in case classifier do not support batch-processing
+	# Instead of sending the whole list as batch,
+	# do it one by one in case classifier do not support batch-processing
 	# TODO: Enable batch processing support
 	for GNNgraph in GNNgraph_list:
 		node_feat, n2n, subg = graph_to_tensor(
@@ -69,28 +64,115 @@ def is_salient(score, importance_range):
 	else:
 		return False
 
-def occlude_graphs(metric_attribution_scores, config):
+def occlude_graphs(metric_attribution_scores, dataset_features, importance_range):
 	# Transform the graphs, occlude nodes with significant attribution scores
-	importance_range = config["metrics"]["fidelity"]["importance_range"].split(",")
-	importance_range = [float(bound) for bound in importance_range]
-
 	occluded_GNNgraph_list = []
 	for group in metric_attribution_scores:
 		GNNgraph = deepcopy(group['graph'])
 		attribution_score = group[GNNgraph.label]
 
+		# Go through every node in graph to check if node is salient
 		for i in range(len(attribution_score)):
 			if is_salient(abs(float(attribution_score[i])), importance_range):
-				GNNgraph.node_labels[i] = None
+				# Occlude node
+				if dataset_features['have_node_labels'] is True:
+					GNNgraph.node_labels[i] = None
+				if dataset_features['have_node_attribution'] is True:
+					GNNgraph.node_features[i] = None
 		occluded_GNNgraph_list.append(GNNgraph)
 	return occluded_GNNgraph_list
 
 
 def get_fidelity(trained_classifier_model, metric_attribution_scores, dataset_features, config, cuda):
+	importance_range = config["metrics"]["fidelity"]["importance_range"].split(",")
+	importance_range = [float(bound) for bound in importance_range]
+
 	GNNgraph_list = [group["graph"] for group in metric_attribution_scores]
 
 	accuracy_prior_occlusion = get_accuracy(trained_classifier_model, GNNgraph_list, dataset_features, cuda)
-	occluded_GNNgraph_list = occlude_graphs(metric_attribution_scores, config)
+	occluded_GNNgraph_list = occlude_graphs(metric_attribution_scores, dataset_features, importance_range)
 	accuracy_after_occlusion = get_accuracy(trained_classifier_model, occluded_GNNgraph_list, dataset_features, cuda)
-	print(accuracy_after_occlusion)
-	exit()
+
+	fidelity_score = accuracy_prior_occlusion - accuracy_after_occlusion
+	return fidelity_score
+
+# Contrastivity ====================================================================
+def binarize_score_list(attribution_scores_list, importance_range):
+	binarized_scores_list = []
+	for scores in attribution_scores_list:
+		binary_score = ''
+		for score in scores:
+			if is_salient(abs(float(score)), importance_range):
+				binary_score += '1'
+			else:
+				binary_score += '0'
+		binarized_scores_list.append(binary_score)
+	return binarized_scores_list
+
+def get_contrastivity(metric_attribution_scores, dataset_features, config):
+	importance_range = config["metrics"]["fidelity"]["importance_range"].split(",")
+	importance_range = [float(bound) for bound in importance_range]
+
+	# Binarize score list according to their saliency
+	class_0_binarized_scores_list = binarize_score_list(
+		[group[0] for group in metric_attribution_scores], importance_range)
+	class_1_binarized_scores_list = binarize_score_list(
+		[group[1] for group in metric_attribution_scores], importance_range)
+
+	result_list = []
+	# Calculate hamming distance
+	for class_0, class_1 in zip(class_0_binarized_scores_list, class_1_binarized_scores_list):
+		assert len(class_0) == len(class_1)
+		d = hamming(class_0, class_1)
+		result_list.append(d / len(class_0))
+
+	return sum(result_list) / len(result_list)
+
+# Sparsity ====================================================================
+def count_salient_nodes(attribution_scores_list, important_range):
+	salient_node_count_list = []
+	for scores in attribution_scores_list:
+		count = 0
+		for score in scores:
+			if is_salient(abs(float(score)), important_range):
+				count += 1
+		salient_node_count_list.append(count)
+	return salient_node_count_list
+
+def get_sparsity(metric_attribution_scores, config):
+	importance_range = config["metrics"]["fidelity"]["importance_range"].split(",")
+	importance_range = [float(bound) for bound in importance_range]
+
+	class_0_significant_nodes_count = count_salient_nodes(
+		[group[0] for group in metric_attribution_scores], importance_range)
+	class_1_significant_nodes_count = count_salient_nodes(
+		[group[1] for group in metric_attribution_scores], importance_range)
+	graphs_number_of_nodes = [group['graph'].number_of_nodes for group in metric_attribution_scores]
+
+	# measure the average sparsity score across all samples
+	result_list = []
+	for i in range(len(graphs_number_of_nodes)):
+		d = class_0_significant_nodes_count[i] + \
+			class_1_significant_nodes_count[i]
+		d /= (graphs_number_of_nodes[i] * 2)
+		result_list.append(1 - d)
+	return sum(result_list) / len(result_list)
+
+def compute_metric(trained_classifier_model, metric_attribution_scores, dataset_features, config, cuda):
+	if config["metrics"]["fidelity"]["enabled"] is True:
+		fidelity_metric = get_fidelity(trained_classifier_model, metric_attribution_scores, dataset_features,
+						config, cuda)
+	else:
+		fidelity_metric = 0
+
+	if config["metrics"]["contrastivity"]["enabled"] is True:
+		contrastivity_metric = get_contrastivity(metric_attribution_scores, dataset_features, config)
+	else:
+		contrastivity_metric = 0
+
+	if config["metrics"]["sparsity"]["enabled"] is True:
+		sparsity_metric = get_sparsity(metric_attribution_scores, config)
+	else:
+		sparsity_metric = 0
+
+	return fidelity_metric, contrastivity_metric, sparsity_metric
