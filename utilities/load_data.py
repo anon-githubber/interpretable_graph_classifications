@@ -89,8 +89,7 @@ def unserialize_pickle(dataset_name):
 	return graph_list, graph_labels_mapping_dict, node_labels_mapping_dict, node_label_flag, node_feature_flag
 
 # load_data(): Loads pickled dataset
-def load_model_data(dataset_name, k_fold=1, test_number=0,
-					dataset_autobalance=True, print_dataset_info=True):
+def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dataset_info=True):
 	'''
 
 	:param dataset_name: name of the dataset to use
@@ -211,15 +210,13 @@ def load_model_data(dataset_name, k_fold=1, test_number=0,
 		print(dataset_features_string)
 
 	# If no test number is specified, use stratified KFold sampling for train test split
-	# Todo check if this is valid
-	if test_number == 0:
-		stratified_KFold = StratifiedKFold(n_splits=10, shuffle=True, random_state=None)
-		i = 0
-		for train_index, test_index in stratified_KFold.split(graph_list, graph_labels):
-			if i == k_fold:
-				break
-			else:
-				i+=1
-		return [graph_list[i] for i in train_index], [graph_list[i] for i in test_index], dataset_features
-	else:
-		return graph_list[: n_g - test_number], graph_list[n_g - test_number:], dataset_feature
+	stratified_KFold = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=None)
+	i = 0
+
+	train_graphs = []
+	test_graphs = []
+	for train_index, test_index in stratified_KFold.split(graph_list, graph_labels):
+		train_graphs.append([graph_list[i] for i in train_index])
+		test_graphs.append([graph_list[i] for i in test_index])
+
+	return train_graphs, test_graphs, dataset_features
