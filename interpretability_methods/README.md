@@ -22,4 +22,6 @@ attribution score for one graph.
 
 4. Add the function to the a python file of the same name as put it in this directory. Import the function in \_\_init__.py
 
+5. In config.yml, add the name of your function under "interpretability methods", and have atleast one configuration "enabled" with a value of boolean
+
 See the implementation for DeepLIFT as example

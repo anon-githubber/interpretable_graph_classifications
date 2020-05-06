@@ -85,7 +85,7 @@ def graph_to_tensor(batch_graphs, node_feat_dim, edge_feat_dim, gpu):
                     'torch.FloatTensor')
                 concat_edge_feat.append(tmp)
 
-    # Processing slabele
+    # Processing labels
     # Process node labels into one-hot embedding
     if node_label_flag == True:
         concat_label = torch.LongTensor(concat_label).view(-1, 1)

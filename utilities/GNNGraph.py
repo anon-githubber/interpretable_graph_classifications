@@ -24,8 +24,6 @@ class GNNGraph(object):
 			self.node_labels = []
 			self.unique_node_labels = ()
 
-
-
 		# Process edge pairs
 		if len(nxgraph.edges()) != 0:
 			x, y = zip(*nxgraph.edges())

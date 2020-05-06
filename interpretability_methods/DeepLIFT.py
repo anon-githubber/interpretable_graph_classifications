@@ -28,7 +28,10 @@ def get_isomorphic_pairs(dataset_name, graph_list, max_pairs=5):
 		class_1_indices = indexes[1]
 
 		# Check if existing isomorphic pairs found is greater than the max pairs needed
-		if len(class_0_indices) == max_pairs:
+		if len(class_0_indices) == 0:
+			# If no isomorphic pairs stored, return None
+			return None, None
+		elif len(class_0_indices) == max_pairs:
 			# If exact, return as is
 			return [graph_list[i] for i in class_0_indices], [graph_list[i] for i in class_1_indices]
 		elif len(class_0_indices) > max_pairs:
@@ -87,7 +90,6 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
 	# Initialise settings
 	config = config
 	dataset_features = dataset_features
-	metric_output = []
 
 	# Perform deeplift on the classifier model
 	dl = DeepLift(classifier_model)
@@ -117,7 +119,7 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
 								   target=label)
 			attribution_score = torch.sum(attribution, dim=1)
 			tmp_timing_list.append(perf_counter() - start_generation)
-			# attribution_score = normalize_scores(attribution_score, -1, 1)
+			attribution_score = normalize_scores(attribution_score, -1, 1)
 
 			output[label] = attribution_score
 		output_for_metrics_calculation.append(output)
@@ -125,7 +127,6 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
 	execution_time = sum(tmp_timing_list)/(len(tmp_timing_list))
 
 	# Obtain attribution score for use in generating saliency map for comparison with zero tensors
-
 	if config["compare_with_zero_tensor"] is True:
 		# Randomly sample from existing list:
 		graph_idxes = list(range(len(output_for_metrics_calculation)))
@@ -153,7 +154,9 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
 				config["number_of_isomorphic_sample_pairs"])
 
 			# Generate attribution scores for the isomorphic pairs
-			if len(class_0_graphs) == 0 or len(class_1_graphs) == 0:
+			if class_0_graphs == None:
+				pass
+			elif len(class_0_graphs) == 0 or len(class_1_graphs) == 0:
 				print("DeepLIFT: No isomorphic pairs found for test dataset")
 			else:
 				output_for_generating_saliency_map["deeplift_isomorphic_class_0"] = []
@@ -181,6 +184,9 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, cuda=0):
 
 					attribution_score_0 = torch.sum(attribution_0, dim=1)
 					attribution_score_1 = torch.sum(attribution_1, dim=1)
+
+					attribution_score_0 = normalize_scores(attribution_score_0, -1, 1)
+					attribution_score_1 = normalize_scores(attribution_score_1, -1, 1)
 
 					output_for_generating_saliency_map["deeplift_isomorphic_class_0"].append(
 						(graph_0, attribution_score_0))

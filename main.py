@@ -13,6 +13,7 @@ import argparse
 from models import *
 from interpretability_methods import *
 
+from copy import deepcopy
 from utilities.load_data import load_model_data
 from utilities.util import graph_to_tensor
 from utilities.output_results import output_to_images
@@ -20,6 +21,7 @@ from utilities.metrics import auc_scores, compute_metric
 
 # Define timer list to report running statistics
 timing_dict = {"forward": [], "backward": [], "generate_score": []}
+run_statistics_string = ""
 
 def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, optimizer=None):
 	bsize = max(config["general"]["batch_size"], 1)
@@ -115,106 +117,142 @@ if __name__ == '__main__':
 	config = yaml.safe_load(open("config.yml"))
 
 	# Set random seed
-	random.seed(config["test"]["seed"])
-	np.random.seed(config["test"]["seed"])
-	torch.manual_seed(config["test"]["seed"])
+	random.seed(config["run"]["seed"])
+	np.random.seed(config["run"]["seed"])
+	torch.manual_seed(config["run"]["seed"])
 
 	# Load graph data using util.load_data(), see util.py ==============================================================
 	# Specify the dataset to use and the number of folds for partitioning
 	train_graphs, test_graphs, dataset_features = load_model_data(
 		cmd_args.data,
-		config["test"]["k_fold"],
-		config["test"]["test_number"],
+		config["run"]["k_fold"],
 		config["general"]["data_autobalance"],
 		config["general"]["print_dataset_features"]
 	)
 
-	print('# train: %d, # test: %d' % (len(train_graphs), len(test_graphs)))
 	config["dataset_features"] = dataset_features
 
 	# Instantiate the classifier using the configurations ==============================================================
 	# Use saved model
+	model_list = []
+	model_metrics_dict = {"accuracy": [], "roc_auc": [], "prc_auc": []}
+
 	if cmd_args.retrain == '0':
 		# Load classifier if it exists:
+		model_list = None
 		try:
-			classifier_model = torch.load("tmp/saved_models/%s_%s_epochs_%s_learnrate_%s.pth" %
-				   (dataset_features["name"], cmd_args.gm,
-					str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
+			model_list = torch.load("tmp/saved_models/%s_%s_epochs_%s_learnrate_%s_folds_%s.pth" %
+				   (dataset_features["name"], cmd_args.gm, str(config["run"]["num_epochs"]),
+					str(config["run"]["learning_rate"]), str(config["run"]["k_fold"])))
 		except FileNotFoundError:
 			print("Retrain is disabled but no such save of %s for dataset %s with the current training configurations"
 				  " exists in tmp/saved_models folder. "
 				  "Please retry run with -retrain enabled." % (dataset_features["name"], cmd_args.gm))
 			exit()
 
-		print("Testing model using saved model: " + cmd_args.gm)
-		classifier_model.eval()
+		print("Testing models using saved model: " + cmd_args.gm)
 
-		test_idxes = list(range(len(test_graphs)))
-		test_loss = loop_dataset(test_graphs, classifier_model, test_idxes,
-								 config, dataset_features)
-		print('\033[93maverage test: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
-			 test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
+		for fold_number in range(len(model_list)):
+			print("Testing using fold %s" % fold_number)
+			model_list[fold_number].eval()
 
-	# Retrain a new model
+			test_graph_fold = test_graphs[fold_number]
+
+			test_idxes = list(range(len(test_graph_fold)))
+			test_loss = loop_dataset(test_graph_fold, model_list[fold_number], test_idxes,
+				config, dataset_features)
+			print('\033[93maverage test: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
+				test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
+
+			model_metrics_dict["accuracy"].append(test_loss[1])
+			model_metrics_dict["roc_auc"].append(test_loss[2])
+			model_metrics_dict["prc_auc"].append(test_loss[3])
+
+	# Retrain a new set of models
 	else:
 		print("Training a new model: " + cmd_args.gm)
-		exec_string = "classifier_model = %s(config[\"GNN_models\"][\"%s\"], config[\"dataset_features\"])" % \
-			(cmd_args.gm, cmd_args.gm)
-		exec(exec_string)
 
 		# Begin training ===============================================================================================
-		if cmd_args.cuda == '1':
-			classifier_model = classifier_model.cuda()
+		fold_number = 0
+		for train_graph_fold, test_graph_fold in zip(train_graphs, test_graphs):
+			print("Training model with dataset, testing using fold %s" % fold_number)
+			exec_string = "classifier_model = %s(deepcopy(config[\"GNN_models\"][\"%s\"])," \
+						  " deepcopy(config[\"dataset_features\"]))" % (cmd_args.gm, cmd_args.gm)
+			exec (exec_string)
 
-		# Define back propagation optimizer
-		optimizer = optim.Adam(classifier_model.parameters(), lr=config["train"]["learning_rate"])
+			if cmd_args.cuda == '1':
+				classifier_model = classifier_model.cuda()
 
-		train_idxes = list(range(len(train_graphs)))
-		test_idxes = list(range(len(test_graphs)))
-		best_loss = None
+			# Define back propagation optimizer
+			optimizer = optim.Adam(classifier_model.parameters(), lr=config["run"]["learning_rate"])
 
-		# For each epoch:
-		for epoch in range(config["train"]["num_epochs"]):
-			random.shuffle(train_idxes)
-			classifier_model.train()
-			avg_loss = loop_dataset(train_graphs, classifier_model, train_idxes,
-									config, dataset_features, optimizer=optimizer)
-			print('\033[92maverage training of epoch %d: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
-				epoch, avg_loss[0], avg_loss[1], avg_loss[2],avg_loss[3]))
+			train_idxes = list(range(len(train_graph_fold)))
+			test_idxes = list(range(len(test_graph_fold)))
+			best_loss = None
 
-			classifier_model.eval()
-			random.shuffle(test_idxes)
-			test_loss = loop_dataset(test_graphs, classifier_model, test_idxes,
-									 config, dataset_features)
-			print('\033[93maverage test of epoch %d: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
-				epoch, test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
+			# For each epoch:
+			for epoch in range(config["run"]["num_epochs"]):
+				classifier_model.train()
+				avg_loss = loop_dataset(train_graph_fold, classifier_model, train_idxes,
+										config, dataset_features, optimizer=optimizer)
+				print('\033[92maverage training of epoch %d: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
+					epoch, avg_loss[0], avg_loss[1], avg_loss[2],avg_loss[3]))
 
+				classifier_model.eval()
+				test_loss = loop_dataset(test_graph_fold, classifier_model, test_idxes,
+										 config, dataset_features)
+				print('\033[93maverage test of epoch %d: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
+					epoch, test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
+
+			model_metrics_dict["accuracy"].append(test_loss[1])
+			model_metrics_dict["roc_auc"].append(test_loss[2])
+			model_metrics_dict["prc_auc"].append(test_loss[3])
+
+			model_list.append(classifier_model)
+			fold_number += 1
+
+		# Save all models
 		print("Saving trained model %s for dataset %s" % (dataset_features["name"], cmd_args.gm))
-		torch.save(classifier_model, "tmp/saved_models/%s_%s_epochs_%s_learnrate_%s.pth" %
-				   (dataset_features["name"], cmd_args.gm,
-					str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
+		torch.save(model_list, "tmp/saved_models/%s_%s_epochs_%s_learnrate_%s_folds_%s.pth" %
+				   (dataset_features["name"], cmd_args.gm, str(config["run"]["num_epochs"]),
+					str(config["run"]["learning_rate"]), str(config["run"]["k_fold"])))
+
+	run_statistics_string += "Average Accuracy: %s " % \
+							 round(sum(model_metrics_dict["accuracy"])/len(model_metrics_dict["accuracy"]),5)
+	run_statistics_string += "Average ROC_AUC: %s " % \
+							 round(sum(model_metrics_dict["roc_auc"])/len(model_metrics_dict["roc_auc"]),5)
+	run_statistics_string += "Average PRC_AUC: %s " % \
+							 round(sum(model_metrics_dict["prc_auc"])/len(model_metrics_dict["prc_auc"]),5)
 
 	# Begin applying interpretability methods ==========================================================================
-	interpretability_methods_config = config["interpretability_methods"]
+	index_max_roc_auc = np.argmax(model_metrics_dict["roc_auc"])
+	best_saliency_outputs_dict = {}
 
-	for method in config["interpretability_methods"].keys():
-		print("Running method: " + str(method))
-		exec_string = "score_output, saliency_output, execution_time = %s(classifier_model, config[\"interpretability_methods\"]" \
-					  "[\"%s\"], dataset_features, test_graphs, cmd_args.cuda)" % (method, method)
-		exec(exec_string)
+	print("Applying interpretability methods")
+	for fold_number in range(len(model_list)):
+		for method in config["interpretability_methods"].keys():
+			if config["interpretability_methods"][method]["enabled"] is True:
+				print("Running method: %s for fold %s" % (str(method), str(fold_number)))
+				exec_string = "score_output, saliency_output, generate_score_execution_time = " \
+							  "%s(model_list[fold_number], config[\"interpretability_methods\"][\"%s\"]," \
+							  " dataset_features, test_graphs[fold_number], cmd_args.cuda)" % (method, method)
+				exec(exec_string)
 
-	timing_dict["generate_score"] = execution_time
+				if fold_number == index_max_roc_auc:
+					best_saliency_outputs_dict.update(saliency_output)
+		timing_dict["generate_score"].append(generate_score_execution_time)
 
-	# Calculate qualitative metrics ====================================================================================
-	#metric_outputs = compute_metric(classifier_model, test_graphs, score_output, dataset_features, config, cmd_args.cuda)
+		# Calculate qualitative metrics ================================================================================
+		#metric_outputs = compute_metric(model_list[fold_number], test_graphs[fold_number], score_output, \
+		 		dataset_features, config, cmd_args.cuda)
 
-	# Create heatmap from output =======================================================================================
+	# Create heatmap from the model with the best ROC_AUC output =======================================================
 	output_count = output_to_images(saliency_output, dataset_features, output_directory="results/image")
+
 	print("Generated %s saliency map images." % output_count)
 
 
 	# Print run statistics =============================================================================================
-	run_statistics_string = ""
 	if len(timing_dict["forward"]) > 0:
 		run_statistics_string += "Average forward propagation time taken(ms): %s\n" %\
 								 str(sum(timing_dict["forward"])/len(timing_dict["forward"]) * 1000)
@@ -222,7 +260,7 @@ if __name__ == '__main__':
 		run_statistics_string += "Average backward propagation time taken(ms): %s\n" %\
 								 str(sum(timing_dict["backward"])/len(timing_dict["backward"])* 1000)
 	run_statistics_string += "Average time taken to generate attribution scores(ms): %s\n" %\
-							 str(timing_dict["generate_score"]/len(test_graphs) * 1000)
+							 str(sum(timing_dict["generate_score"])/len(timing_dict["generate_score"]) * 1000)
 
 	print(run_statistics_string)
 
