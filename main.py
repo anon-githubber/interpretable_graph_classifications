@@ -21,7 +21,7 @@ from utilities.metrics import auc_scores, compute_metric
 
 # Define timer list to report running statistics
 timing_dict = {"forward": [], "backward": [], "generate_score": []}
-run_statistics_string = ""
+run_statistics_string = "Run statistics: \n"
 
 def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, optimizer=None):
 	bsize = max(config["general"]["batch_size"], 1)
@@ -217,15 +217,18 @@ if __name__ == '__main__':
 				   (dataset_features["name"], cmd_args.gm, str(config["run"]["num_epochs"]),
 					str(config["run"]["learning_rate"]), str(config["run"]["k_fold"])))
 
-	run_statistics_string += "Average Accuracy: %s " % \
+	run_statistics_string += "Accuracy (avg): %s " % \
 							 round(sum(model_metrics_dict["accuracy"])/len(model_metrics_dict["accuracy"]),5)
-	run_statistics_string += "Average ROC_AUC: %s " % \
+	run_statistics_string += "ROC_AUC (avg): %s " % \
 							 round(sum(model_metrics_dict["roc_auc"])/len(model_metrics_dict["roc_auc"]),5)
-	run_statistics_string += "Average PRC_AUC: %s " % \
+	run_statistics_string += "PRC_AUC (avg): %s " % \
 							 round(sum(model_metrics_dict["prc_auc"])/len(model_metrics_dict["prc_auc"]),5)
+
+	run_statistics_string += "\n"
 
 	# Begin applying interpretability methods ==========================================================================
 	index_max_roc_auc = np.argmax(model_metrics_dict["roc_auc"])
+	qualitative_metrics_dict = {"fidelity": [], "contrastivity": [], "sparsity": []}
 	best_saliency_outputs_dict = {}
 
 	print("Applying interpretability methods")
@@ -234,8 +237,8 @@ if __name__ == '__main__':
 			if config["interpretability_methods"][method]["enabled"] is True:
 				print("Running method: %s for fold %s" % (str(method), str(fold_number)))
 				exec_string = "score_output, saliency_output, generate_score_execution_time = " \
-							  "%s(model_list[fold_number], config[\"interpretability_methods\"][\"%s\"]," \
-							  " dataset_features, test_graphs[fold_number], cmd_args.cuda)" % (method, method)
+							  "%s(model_list[fold_number], config," \
+							  " dataset_features, test_graphs[fold_number], fold_number, cmd_args.cuda)" % method
 				exec(exec_string)
 
 				if fold_number == index_max_roc_auc:
@@ -243,14 +246,27 @@ if __name__ == '__main__':
 		timing_dict["generate_score"].append(generate_score_execution_time)
 
 		# Calculate qualitative metrics ================================================================================
-		#metric_outputs = compute_metric(model_list[fold_number], test_graphs[fold_number], score_output, \
+		fidelity, contrastivity, sparsity = compute_metric(model_list[fold_number], score_output, \
 		 		dataset_features, config, cmd_args.cuda)
+		qualitative_metrics_dict["fidelity"].append(fidelity)
+		qualitative_metrics_dict["contrastivity"].append(contrastivity)
+		qualitative_metrics_dict["sparsity"].append(sparsity)
+
+	run_statistics_string += "Fidelity (avg): %s " % \
+							 str(round(sum(qualitative_metrics_dict["fidelity"]) /
+								 len(qualitative_metrics_dict["fidelity"]),5))
+	run_statistics_string += "Contrastivity (avg): %s " % \
+							 str(round(sum(qualitative_metrics_dict["contrastivity"]) /
+								 len(qualitative_metrics_dict["contrastivity"]),5))
+	run_statistics_string += "Sparsity (avg): %s " % \
+							 str(round(sum(qualitative_metrics_dict["sparsity"]) /
+								 len(qualitative_metrics_dict["sparsity"]),5))
+
+	run_statistics_string += "\n"
 
 	# Create heatmap from the model with the best ROC_AUC output =======================================================
 	output_count = output_to_images(saliency_output, dataset_features, output_directory="results/image")
-
 	print("Generated %s saliency map images." % output_count)
-
 
 	# Print run statistics =============================================================================================
 	if len(timing_dict["forward"]) > 0:

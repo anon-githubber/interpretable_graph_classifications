@@ -3,7 +3,8 @@ To add a new interpretability method, your function must take in (following the 
 2. The whole parsed configuration dicionary (config)
 3. The dataset features dictionary obtained from load_data() (dataset_features)
 4. The training dataset (GNNgraph_list)
-4. Whether to enable cuda, 0 for disable 1 for enable (cuda)
+5. Current fold number, needed for DeepLIFT (current_fold)
+6. Whether to enable cuda, 0 for disable 1 for enable (cuda)
 
 The function must output atleast:
 1. A list of dictionaries, where the first key contains the GNNgraph, and subsequent key-value pair contains the 
