@@ -18,11 +18,20 @@ def output_to_images(output, dataset_features, custom_label_mapping = None, outp
 	:param dataset_features: a dictionary of useful information about the dataset, obtained from load_data.py
 	:param output_path: the path to output the image files
 	'''
-	for attribution_score_group, group_content in output.items():
+
+	group_count = 0
+	total_group_count = len(output)
+	total_output_count = 0
+
+	for attribution_score_group, graph_score_pair in output.items():
+		image_count_to_generate = len(graph_score_pair)
 		i = 0
-		for group in group_content:
-			GNNgraph = group[0]
-			attribution_scores = group[1]
+		for pair in graph_score_pair:
+			print("output_to_images: Generating image [%s/%s] for group %s [%s/%s]" %
+				  (str((i+1)), str(image_count_to_generate), str(attribution_score_group),
+				   str(group_count+1),str(total_group_count)))
+			GNNgraph = pair[0]
+			attribution_scores = pair[1]
 
 			# Get nxgraph from GNNgraph
 			nxgraph = GNNgraph.to_nxgraph()
@@ -59,7 +68,7 @@ def output_to_images(output, dataset_features, custom_label_mapping = None, outp
 
 			nt = nx.draw_networkx_labels(nxgraph, pos, node_labels, font_size=12)
 
-			plt.title("%s_label_%s_index_%s" % (attribution_score_group, graph_label, str(i)))
+			plt.title("%s ID:%s Label:%s Index:%s" % (attribution_score_group, GNNgraph.graph_id, graph_label, str(i)))
 
 			plt.axis('off')
 			plt.colorbar(nc)
@@ -73,9 +82,11 @@ def output_to_images(output, dataset_features, custom_label_mapping = None, outp
 			except FileExistsError:
 				pass
 
-			image_output_path = "%s/%s/%s_index_%s.png" % (output_directory, dataset_features["name"], str(attribution_score_group), str(i))
+			image_output_path = "%s/%s/%s_index_%s.png" % (
+				output_directory, dataset_features["name"], str(attribution_score_group), str(i))
 			plt.savefig(image_output_path)
 			plt.clf()
 			i += 1
-
-	return i
+		group_count += 1
+		total_output_count += i
+	return total_output_count

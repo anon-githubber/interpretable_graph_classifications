@@ -16,10 +16,10 @@ from interpretability_methods import *
 from utilities.load_data import load_model_data
 from utilities.util import graph_to_tensor
 from utilities.output_results import output_to_images
-from utilities.metrics import auc_scores
+from utilities.metrics import auc_scores, compute_metric
 
 # Define timer list to report running statistics
-timing_dict = {"forward": [], "backward": [], "generate_image": []}
+timing_dict = {"forward": [], "backward": [], "generate_score": []}
 
 def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, optimizer=None):
 	bsize = max(config["general"]["batch_size"], 1)
@@ -60,23 +60,24 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 		# Perform training
 		start_forward = time.perf_counter()
 		output = classifier(node_feat, n2n, subg, batch_graph)
+		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
 		logits = F.log_softmax(output, dim=1)
 		prob = F.softmax(logits, dim=1)
 
 		# Calculate accuracy and loss
 		loss = F.nll_loss(logits, labels)
-		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
 		pred = logits.data.max(1, keepdim=True)[1]
 		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() / float(labels.size()[0])
 		all_scores.append(prob.cpu().detach())  # for classification
 
 		# Back propagation
 		if optimizer is not None:
-			start_backward = time.perf_counter()
 			optimizer.zero_grad()
+			start_backward = time.perf_counter()
 			loss.backward()
-			optimizer.step()
 			temp_timing_dict["backward"].append(time.perf_counter() - start_backward)
+			optimizer.step()
+
 
 		loss = loss.data.cpu().detach().numpy()
 		pbar.set_description('loss: %0.5f acc: %0.5f' % (loss, acc) )
@@ -140,8 +141,9 @@ if __name__ == '__main__':
 				   (dataset_features["name"], cmd_args.gm,
 					str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
 		except FileNotFoundError:
-			print("Retrain is disabled but no such save of %s for dataset %s exists in tmp/saved_models folder. "
-				  "Please Retry run with -retrain enabled." % (dataset_features["name"], cmd_args.gm))
+			print("Retrain is disabled but no such save of %s for dataset %s with the current training configurations"
+				  " exists in tmp/saved_models folder. "
+				  "Please retry run with -retrain enabled." % (dataset_features["name"], cmd_args.gm))
 			exit()
 
 		print("Testing model using saved model: " + cmd_args.gm)
@@ -160,7 +162,7 @@ if __name__ == '__main__':
 			(cmd_args.gm, cmd_args.gm)
 		exec(exec_string)
 
-		# Begin training ===================================================================================================
+		# Begin training ===============================================================================================
 		if cmd_args.cuda == '1':
 			classifier_model = classifier_model.cuda()
 
@@ -192,29 +194,35 @@ if __name__ == '__main__':
 				   (dataset_features["name"], cmd_args.gm,
 					str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
 
-	# Begin performing interpretability methods ========================================================================
+	# Begin applying interpretability methods ==========================================================================
 	interpretability_methods_config = config["interpretability_methods"]
-	start_image = time.perf_counter()
+
 	for method in config["interpretability_methods"].keys():
 		print("Running method: " + str(method))
-		exec_string = "output = %s(classifier_model, config[\"interpretability_methods\"][\"%s\"], dataset_features, " \
-					  "train_graphs + test_graphs, cmd_args.cuda)" % (method, method)
+		exec_string = "score_output, saliency_output, execution_time = %s(classifier_model, config[\"interpretability_methods\"]" \
+					  "[\"%s\"], dataset_features, test_graphs, cmd_args.cuda)" % (method, method)
 		exec(exec_string)
 
-	# Create heatmap from output =======================================================================================
-	output_count = output_to_images(output, dataset_features, output_directory="results/image")
-	print("Generated %s saliency map images." % output_count)
-	timing_dict["generate_image"] = time.perf_counter() - start_image
+	timing_dict["generate_score"] = execution_time
 
-	# Print run statistics =======================================================================================
+	# Calculate qualitative metrics ====================================================================================
+	#metric_outputs = compute_metric(classifier_model, test_graphs, score_output, dataset_features, config, cmd_args.cuda)
+
+	# Create heatmap from output =======================================================================================
+	output_count = output_to_images(saliency_output, dataset_features, output_directory="results/image")
+	print("Generated %s saliency map images." % output_count)
+
+
+	# Print run statistics =============================================================================================
 	run_statistics_string = ""
 	if len(timing_dict["forward"]) > 0:
-		run_statistics_string += "Average forward propagation time taken(ms): %s\n" % str(sum(timing_dict["forward"])/\
-			len(timing_dict["forward"]) * 1000)
-	run_statistics_string += "Average backward propagation time taken(ms): %s\n" % str(sum(timing_dict["backward"]) / \
-							 len(timing_dict["backward"])* 1000)
-	run_statistics_string += "Average time taken to generate saliency map(ms): %s\n" % str(timing_dict["generate_image"] / \
-							 output_count * 1000)
+		run_statistics_string += "Average forward propagation time taken(ms): %s\n" %\
+								 str(sum(timing_dict["forward"])/len(timing_dict["forward"]) * 1000)
+	if len(timing_dict["backward"]) > 0:
+		run_statistics_string += "Average backward propagation time taken(ms): %s\n" %\
+								 str(sum(timing_dict["backward"])/len(timing_dict["backward"])* 1000)
+	run_statistics_string += "Average time taken to generate attribution scores(ms): %s\n" %\
+							 str(timing_dict["generate_score"]/len(test_graphs) * 1000)
 
 	print(run_statistics_string)
 

@@ -24,13 +24,33 @@ def auc_scores(all_targets, all_scores):
         roc_auc = metrics.roc_auc_score(
             all_targets, all_scores, multi_class='ovo', average='macro')
 
-        exit()
+        # Todo: build PRC-AUC calculations for multi-class datasets
+        prc_auc = "N/A"
 
     return roc_auc, prc_auc
 
 
-def compute_metric(metric, sampled_graphs, classifier_model, method, dataset_features, output, config, importance_ranges, use_gpu):
-    if metric == 'fidelity':
-        return measure_fidelity(classifier_model, deepcopy(sampled_graphs), output, dataset_features, use_gpu=use_gpu)
-    elif metric == 'contrastivity':
-        return measure_contrastivity(classifier_model, sampled_graphs, method, dataset_features, config)
+def compute_metric(trained_classifier_model, GNNGraph_list, metric_attribution_score, dataset_features,config, importance_ranges, cuda):
+    fidelity_metric = get_fidelity(trained_classifier_model, metric_attribution_score, GNNGraph_list)
+
+
+def get_accuracy(trained_classifier_model, GNNgraph_list):
+    trained_classifier_model.eval()
+    true_pred_pairs = []
+    # Instead of sending the whole list as batch, do it one by one in case classifier do not support batch-processing
+    for GNNgraph in GNNgraph_list:
+        node_feat, n2n, subg = graph_to_tensor(
+            GNNgraph, dataset_features["feat_dim"],
+            dataset_features["edge_feat_dim"], cmd_args.cuda)
+
+        subg = subg.size()[0]
+
+        output = trained_classifier_model(node_feat, n2n, subg, batch_graph)
+        logits = F.log_softmax(output, dim=1)
+        pred = logits.data.max(1, keepdim=True)[1]
+
+        print(pred)
+        exit()
+
+def get_fidelity(trained_classifier_model, GNNgraph_list, metric_attribution_scores):
+    accuracy_prior_occlusion = get_accuracy(trained_classifier_model, GNNgraph_list)

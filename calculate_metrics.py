@@ -127,11 +127,13 @@ if __name__ == '__main__':
     if cmd_args.retrain == '0':
         # Load classifier if it exists:
         try:
-            classifier_model = torch.load(
-                "tmp/saved_models/%s_%s.pth" % (dataset_features["name"], cmd_args.gm))
+            classifier_model = torch.load("tmp/saved_models/%s_%s_epochs_%s_learnrate_%s.pth" %
+				   (dataset_features["name"], cmd_args.gm,
+					str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
         except FileNotFoundError:
-            print("Retrain is disabled but no such save of %s for dataset %s exists in tmp/saved_models folder. "
-                  "Please Retry run with -retrain enabled." % (dataset_features["name"], cmd_args.gm))
+            print("Retrain is disabled but no such save of %s for dataset %s with the current training configurations"
+                  " exists in tmp/saved_models folder. "
+                  "Please retry run with -retrain enabled." % (dataset_features["name"], cmd_args.gm))
             exit()
 
         print("Testing model using saved model: " + cmd_args.gm)
