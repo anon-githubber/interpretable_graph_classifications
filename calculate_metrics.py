@@ -127,8 +127,9 @@ if __name__ == '__main__':
     if cmd_args.retrain == '0':
         # Load classifier if it exists:
         try:
-            classifier_model = torch.load(
-                "tmp/saved_models/%s_%s.pth" % (dataset_features["name"], cmd_args.gm))
+            classifier_model = torch.load("tmp/saved_models/%s_%s_epochs_%s_learnrate_%s.pth" %
+                                          (dataset_features["name"], cmd_args.gm,
+                                           str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
         except FileNotFoundError:
             print("Retrain is disabled but no such save of %s for dataset %s exists in tmp/saved_models folder. "
                   "Please Retry run with -retrain enabled." % (dataset_features["name"], cmd_args.gm))
@@ -158,6 +159,9 @@ if __name__ == '__main__':
         metrics = config["metrics"]
         metrics = [k for k in metrics if metrics[k]]
         for metric in metrics:
-            score, sd = compute_metric(metric, deepcopy(train_graphs + test_graphs), classifier_model, method, dataset_features, output, config, [(0.5, 1), (-1, -0.5)], cmd_args.cuda)
+            importance_range = [(0.5, 1), (-1, -0.5)
+                                ] if metric == 'DeepLIFT' else [(0.5, 1)]
+            score, sd = compute_metric(metric, deepcopy(train_graphs + test_graphs), classifier_model,
+                                       method, dataset_features, output, config, importance_range, cmd_args.cuda)
             print("Measured %s for %s + %s: %.5f ± %.5f" %
                   (metric, cmd_args.gm, method, score, sd))
