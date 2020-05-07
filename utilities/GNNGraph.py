@@ -2,19 +2,20 @@ import networkx as nx
 import numpy as np
 
 class GNNGraph(object):
-	def __init__(self, nxgraph, label, node_labels=None, node_features=None, graph_id=None):
+	def __init__(self, graph_id, nxgraph, label, node_labels=None, node_features=None):
 		'''
+			graph_id: position of the graph in the dataset
 			nxgraph: a networkx graph
 			label: an integer graph label that describes the class
 			undirected: boolean to flag if GNN Graph is undirected
 			node_labels: a list of integer node labels
 			node_features: a numpy array of continuous node features
 		'''
+		self.graph_id = graph_id
 		self.number_of_nodes = len(nxgraph.nodes())
 		self.label = label
 		self.node_features = node_features  # numpy array (node_num * feature_dim)
 		self.node_degrees = list(dict(nxgraph.degree).values())
-		self.graph_id = None
 
 		if node_labels is not None:
 			self.node_labels = node_labels
@@ -22,8 +23,6 @@ class GNNGraph(object):
 		else:
 			self.node_labels = []
 			self.unique_node_labels = ()
-
-
 
 		# Process edge pairs
 		if len(nxgraph.edges()) != 0:

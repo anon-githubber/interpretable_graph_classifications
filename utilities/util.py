@@ -85,15 +85,27 @@ def graph_to_tensor(batch_graphs, node_feat_dim, edge_feat_dim, gpu):
                     'torch.FloatTensor')
                 concat_edge_feat.append(tmp)
 
-    # Processing slabele
+    # Processing labels
     # Process node labels into one-hot embedding
     if node_label_flag == True:
+        # Check if there are nodes with None as label (i.e. no node label)
+        get_nodes_with_no_label = [index for index, value in enumerate(concat_label) if value is None]
+        for index in get_nodes_with_no_label:
+            concat_label[index] = 0
+
+        # Perform one-hot embedding
         concat_label = torch.LongTensor(concat_label).view(-1, 1)
         node_label = torch.zeros(n_nodes, node_feat_dim)
         try:
             node_label.scatter_(1, concat_label, 1)
         except RuntimeError:
+            # If there is unmapped node label
             batch_graphs[i].info()
+
+        # Set all zeroes for nodes with no label
+        for index in get_nodes_with_no_label:
+            node_label[index] = torch.zeros(1, node_feat_dim)
+
     else:
         node_label = None
 

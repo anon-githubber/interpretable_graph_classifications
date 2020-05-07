@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# cd /mnt/c/users/sogge/desktop/gitrepos/interpretable_graph_classification
+# source /mnt/c/users/sogge/desktop/gitrepos/interpretable_graph_classification/venv/bin/activate
+
 # cd /mnt/c/users/user/desktop/gitrepos/interpretable_graph_classification
 # source /mnt/c/users/user/desktop/gitrepos/interpretable_graph_classification/venv/bin/activate
 # ./run_model.sh

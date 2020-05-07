@@ -13,13 +13,15 @@ import argparse
 from models import *
 from interpretability_methods import *
 
+from copy import deepcopy
 from utilities.load_data import load_model_data
 from utilities.util import graph_to_tensor
 from utilities.output_results import output_to_images
-from utilities.metrics import auc_scores
+from utilities.metrics import auc_scores, compute_metric
 
 # Define timer list to report running statistics
-timing_dict = {"forward": [], "backward": [], "generate_image": []}
+timing_dict = {"forward": [], "backward": []}
+run_statistics_string = "Run statistics: \n"
 
 def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, optimizer=None):
 	bsize = max(config["general"]["batch_size"], 1)
@@ -60,23 +62,24 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 		# Perform training
 		start_forward = time.perf_counter()
 		output = classifier(node_feat, n2n, subg, batch_graph)
+		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
 		logits = F.log_softmax(output, dim=1)
 		prob = F.softmax(logits, dim=1)
 
 		# Calculate accuracy and loss
 		loss = F.nll_loss(logits, labels)
-		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
 		pred = logits.data.max(1, keepdim=True)[1]
 		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() / float(labels.size()[0])
 		all_scores.append(prob.cpu().detach())  # for classification
 
 		# Back propagation
 		if optimizer is not None:
-			start_backward = time.perf_counter()
 			optimizer.zero_grad()
+			start_backward = time.perf_counter()
 			loss.backward()
-			optimizer.step()
 			temp_timing_dict["backward"].append(time.perf_counter() - start_backward)
+			optimizer.step()
+
 
 		loss = loss.data.cpu().detach().numpy()
 		pbar.set_description('loss: %0.5f acc: %0.5f' % (loss, acc) )
@@ -114,107 +117,174 @@ if __name__ == '__main__':
 	config = yaml.safe_load(open("config.yml"))
 
 	# Set random seed
-	random.seed(config["test"]["seed"])
-	np.random.seed(config["test"]["seed"])
-	torch.manual_seed(config["test"]["seed"])
+	random.seed(config["run"]["seed"])
+	np.random.seed(config["run"]["seed"])
+	torch.manual_seed(config["run"]["seed"])
 
 	# Load graph data using util.load_data(), see util.py ==============================================================
 	# Specify the dataset to use and the number of folds for partitioning
 	train_graphs, test_graphs, dataset_features = load_model_data(
 		cmd_args.data,
-		config["test"]["k_fold"],
-		config["test"]["test_number"],
+		config["run"]["k_fold"],
 		config["general"]["data_autobalance"],
 		config["general"]["print_dataset_features"]
 	)
 
-	print('# train: %d, # test: %d' % (len(train_graphs), len(test_graphs)))
 	config["dataset_features"] = dataset_features
 
 	# Instantiate the classifier using the configurations ==============================================================
 	# Use saved model
+	model_list = []
+	model_metrics_dict = {"accuracy": [], "roc_auc": [], "prc_auc": []}
+
 	if cmd_args.retrain == '0':
 		# Load classifier if it exists:
+		model_list = None
 		try:
-			classifier_model = torch.load("tmp/saved_models/%s_%s_epochs_%s_learnrate_%s.pth" %
-				   (dataset_features["name"], cmd_args.gm,
-					str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
+			model_list = torch.load("tmp/saved_models/%s_%s_epochs_%s_learnrate_%s_folds_%s.pth" %
+				   (dataset_features["name"], cmd_args.gm, str(config["run"]["num_epochs"]),
+					str(config["run"]["learning_rate"]), str(config["run"]["k_fold"])))
 		except FileNotFoundError:
-			print("Retrain is disabled but no such save of %s for dataset %s exists in tmp/saved_models folder. "
-				  "Please Retry run with -retrain enabled." % (dataset_features["name"], cmd_args.gm))
+			print("Retrain is disabled but no such save of %s for dataset %s with the current training configurations"
+				  " exists in tmp/saved_models folder. "
+				  "Please retry run with -retrain enabled." % (dataset_features["name"], cmd_args.gm))
 			exit()
 
-		print("Testing model using saved model: " + cmd_args.gm)
-		classifier_model.eval()
+		print("Testing models using saved model: " + cmd_args.gm)
 
-		test_idxes = list(range(len(test_graphs)))
-		test_loss = loop_dataset(test_graphs, classifier_model, test_idxes,
-								 config, dataset_features)
-		print('\033[93maverage test: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
-			 test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
+		for fold_number in range(len(model_list)):
+			print("Testing using fold %s" % fold_number)
+			model_list[fold_number].eval()
 
-	# Retrain a new model
+			test_graph_fold = test_graphs[fold_number]
+
+			test_idxes = list(range(len(test_graph_fold)))
+			test_loss = loop_dataset(test_graph_fold, model_list[fold_number], test_idxes,
+				config, dataset_features)
+			print('\033[93maverage test: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
+				test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
+
+			model_metrics_dict["accuracy"].append(test_loss[1])
+			model_metrics_dict["roc_auc"].append(test_loss[2])
+			model_metrics_dict["prc_auc"].append(test_loss[3])
+
+	# Retrain a new set of models
 	else:
 		print("Training a new model: " + cmd_args.gm)
-		exec_string = "classifier_model = %s(config[\"GNN_models\"][\"%s\"], config[\"dataset_features\"])" % \
-			(cmd_args.gm, cmd_args.gm)
-		exec(exec_string)
 
-		# Begin training ===================================================================================================
-		if cmd_args.cuda == '1':
-			classifier_model = classifier_model.cuda()
+		# Begin training ===============================================================================================
+		fold_number = 0
+		for train_graph_fold, test_graph_fold in zip(train_graphs, test_graphs):
+			print("Training model with dataset, testing using fold %s" % fold_number)
+			exec_string = "classifier_model = %s(deepcopy(config[\"GNN_models\"][\"%s\"])," \
+						  " deepcopy(config[\"dataset_features\"]))" % (cmd_args.gm, cmd_args.gm)
+			exec (exec_string)
 
-		# Define back propagation optimizer
-		optimizer = optim.Adam(classifier_model.parameters(), lr=config["train"]["learning_rate"])
+			if cmd_args.cuda == '1':
+				classifier_model = classifier_model.cuda()
 
-		train_idxes = list(range(len(train_graphs)))
-		test_idxes = list(range(len(test_graphs)))
-		best_loss = None
+			# Define back propagation optimizer
+			optimizer = optim.Adam(classifier_model.parameters(), lr=config["run"]["learning_rate"])
 
-		# For each epoch:
-		for epoch in range(config["train"]["num_epochs"]):
-			random.shuffle(train_idxes)
-			classifier_model.train()
-			avg_loss = loop_dataset(train_graphs, classifier_model, train_idxes,
-									config, dataset_features, optimizer=optimizer)
-			print('\033[92maverage training of epoch %d: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
-				epoch, avg_loss[0], avg_loss[1], avg_loss[2],avg_loss[3]))
+			train_idxes = list(range(len(train_graph_fold)))
+			test_idxes = list(range(len(test_graph_fold)))
+			best_loss = None
 
-			classifier_model.eval()
-			random.shuffle(test_idxes)
-			test_loss = loop_dataset(test_graphs, classifier_model, test_idxes,
-									 config, dataset_features)
-			print('\033[93maverage test of epoch %d: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
-				epoch, test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
+			# For each epoch:
+			for epoch in range(config["run"]["num_epochs"]):
+				classifier_model.train()
+				avg_loss = loop_dataset(train_graph_fold, classifier_model, train_idxes,
+										config, dataset_features, optimizer=optimizer)
+				print('\033[92maverage training of epoch %d: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
+					epoch, avg_loss[0], avg_loss[1], avg_loss[2],avg_loss[3]))
 
+				classifier_model.eval()
+				test_loss = loop_dataset(test_graph_fold, classifier_model, test_idxes,
+										 config, dataset_features)
+				print('\033[93maverage test of epoch %d: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
+					epoch, test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
+
+			model_metrics_dict["accuracy"].append(test_loss[1])
+			model_metrics_dict["roc_auc"].append(test_loss[2])
+			model_metrics_dict["prc_auc"].append(test_loss[3])
+
+			model_list.append(classifier_model)
+			fold_number += 1
+
+		# Save all models
 		print("Saving trained model %s for dataset %s" % (dataset_features["name"], cmd_args.gm))
-		torch.save(classifier_model, "tmp/saved_models/%s_%s_epochs_%s_learnrate_%s.pth" %
-				   (dataset_features["name"], cmd_args.gm,
-					str(config["train"]["num_epochs"]), str(config["train"]["learning_rate"])))
+		torch.save(model_list, "tmp/saved_models/%s_%s_epochs_%s_learnrate_%s_folds_%s.pth" %
+				   (dataset_features["name"], cmd_args.gm, str(config["run"]["num_epochs"]),
+					str(config["run"]["learning_rate"]), str(config["run"]["k_fold"])))
 
-	# Begin performing interpretability methods ========================================================================
-	interpretability_methods_config = config["interpretability_methods"]
-	start_image = time.perf_counter()
-	for method in config["interpretability_methods"].keys():
-		print("Running method: " + str(method))
-		exec_string = "output = %s(classifier_model, config[\"interpretability_methods\"][\"%s\"], dataset_features, " \
-					  "train_graphs + test_graphs, cmd_args.cuda)" % (method, method)
-		exec(exec_string)
+	run_statistics_string += "Accuracy (avg): %s " % \
+							 round(sum(model_metrics_dict["accuracy"])/len(model_metrics_dict["accuracy"]),5)
+	run_statistics_string += "ROC_AUC (avg): %s " % \
+							 round(sum(model_metrics_dict["roc_auc"])/len(model_metrics_dict["roc_auc"]),5)
+	run_statistics_string += "PRC_AUC (avg): %s " % \
+							 round(sum(model_metrics_dict["prc_auc"])/len(model_metrics_dict["prc_auc"]),5)
 
-	# Create heatmap from output =======================================================================================
-	output_count = output_to_images(output, dataset_features, output_directory="results/image")
+	run_statistics_string += "\n"
+
+	# Begin applying interpretability methods ==========================================================================
+	index_max_roc_auc = np.argmax(model_metrics_dict["roc_auc"])
+
+	saliency_map_generation_time_dict = {method: [] for method in config["interpretability_methods"].keys()}
+	qualitative_metrics_dict_by_method = {method: {"fidelity": [], "contrastivity": [], "sparsity": []}
+										  for method in config["interpretability_methods"].keys()}
+
+	best_saliency_outputs_dict = {}
+
+	print("Applying interpretability methods")
+	for fold_number in range(len(model_list)):
+		for method in config["interpretability_methods"].keys():
+			if config["interpretability_methods"][method]["enabled"] is True:
+				print("Running method: %s for fold %s" % (str(method), str(fold_number)))
+				exec_string = "score_output, saliency_output, generate_score_execution_time = " \
+							  "%s(model_list[fold_number], config," \
+							  " dataset_features, test_graphs[fold_number], fold_number, cmd_args.cuda)" % method
+				exec(exec_string)
+
+				if fold_number == index_max_roc_auc:
+					best_saliency_outputs_dict.update(saliency_output)
+				saliency_map_generation_time_dict[method].append(generate_score_execution_time)
+
+		# Calculate qualitative metrics ================================================================================
+				fidelity, contrastivity, sparsity = compute_metric(model_list[fold_number], score_output, \
+					dataset_features, config, cmd_args.cuda)
+
+				qualitative_metrics_dict_by_method[method]["fidelity"].append(fidelity)
+				qualitative_metrics_dict_by_method[method]["contrastivity"].append(contrastivity)
+				qualitative_metrics_dict_by_method[method]["sparsity"].append(sparsity)
+
+	for method, qualitative_metrics_dict in qualitative_metrics_dict_by_method.items():
+		run_statistics_string += "Qualitative metrics for method %s - " % method
+		run_statistics_string += "Fidelity (avg): %s " % \
+								 str(round(sum(qualitative_metrics_dict["fidelity"]) /
+									 len(qualitative_metrics_dict["fidelity"]),5))
+		run_statistics_string += "Contrastivity (avg): %s " % \
+								 str(round(sum(qualitative_metrics_dict["contrastivity"]) /
+									 len(qualitative_metrics_dict["contrastivity"]),5))
+		run_statistics_string += "Sparsity (avg): %s\n" % \
+								 str(round(sum(qualitative_metrics_dict["sparsity"]) /
+									 len(qualitative_metrics_dict["sparsity"]),5))
+		run_statistics_string += "Time taken to generate saliency scores: %s\n" % \
+								 str(round(sum(saliency_map_generation_time_dict[method]) /
+										   len(saliency_map_generation_time_dict[method]), 5))
+
+	run_statistics_string += "\n"
+
+	# Create heatmap from the model with the best ROC_AUC output =======================================================
+	output_count = output_to_images(best_saliency_outputs_dict, dataset_features, output_directory="results/image")
 	print("Generated %s saliency map images." % output_count)
-	timing_dict["generate_image"] = time.perf_counter() - start_image
 
-	# Print run statistics =======================================================================================
-	run_statistics_string = ""
+	# Print run statistics =============================================================================================
 	if len(timing_dict["forward"]) > 0:
-		run_statistics_string += "Average forward propagation time taken(ms): %s\n" % str(sum(timing_dict["forward"])/\
-			len(timing_dict["forward"]) * 1000)
-	run_statistics_string += "Average backward propagation time taken(ms): %s\n" % str(sum(timing_dict["backward"]) / \
-							 len(timing_dict["backward"])* 1000)
-	run_statistics_string += "Average time taken to generate saliency map(ms): %s\n" % str(timing_dict["generate_image"] / \
-							 output_count * 1000)
+		run_statistics_string += "Average forward propagation time taken(ms): %s\n" %\
+								 str(sum(timing_dict["forward"])/len(timing_dict["forward"]) * 1000)
+	if len(timing_dict["backward"]) > 0:
+		run_statistics_string += "Average backward propagation time taken(ms): %s\n" %\
+								 str(sum(timing_dict["backward"])/len(timing_dict["backward"])* 1000)
 
 	print(run_statistics_string)
 
