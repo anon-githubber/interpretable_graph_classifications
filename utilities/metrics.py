@@ -80,6 +80,10 @@ def occlude_graphs(metric_attribution_scores, dataset_features, importance_range
 					GNNgraph.node_labels[i] = None
 				if dataset_features['have_node_attributions'] is True:
 					GNNgraph.node_features[i].fill(0)
+
+		print(attribution_score)
+		print(GNNgraph.node_labels)
+		exit()
 		occluded_GNNgraph_list.append(GNNgraph)
 	return occluded_GNNgraph_list
 

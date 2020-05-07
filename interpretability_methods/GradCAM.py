@@ -5,7 +5,7 @@ import random
 from time import perf_counter
 from os import path
 from copy import deepcopy
-from captum.attr import LayerGradCam
+from captum.attr import Saliency
 from utilities.util import graph_to_tensor, normalize_scores
 
 def GradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
@@ -23,7 +23,7 @@ def GradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_f
 	dataset_features = dataset_features
 
 	# Perform deeplift on the classifier model
-	gc = LayerGradCam(classifier_model, classifier_model.graph_convolution)
+	gc = Saliency(classifier_model, classifier_model.graph_convolution)
 
 	output_for_metrics_calculation = []
 	output_for_generating_saliency_map = {}
