@@ -140,7 +140,7 @@ def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dat
 	dataset_features['num_class'] = len(graph_labels_mapping_dict)
 	dataset_features['label_dict'] = graph_labels_mapping_dict
 	dataset_features['have_node_labels'] = node_label_flag
-	dataset_features['have_node_attibution'] = node_feature_flag
+	dataset_features['have_node_attributions'] = node_feature_flag
 	dataset_features['node_dict'] = node_labels_mapping_dict
 	dataset_features['feat_dim'] = len(node_labels_mapping_dict)
 	dataset_features['edge_feat_dim'] = 0

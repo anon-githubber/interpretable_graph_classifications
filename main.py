@@ -228,7 +228,10 @@ if __name__ == '__main__':
 
 	# Begin applying interpretability methods ==========================================================================
 	index_max_roc_auc = np.argmax(model_metrics_dict["roc_auc"])
-	qualitative_metrics_dict = {"fidelity": [], "contrastivity": [], "sparsity": []}
+
+	qualitative_metrics_dict_by_method = {method: {"fidelity": [], "contrastivity": [], "sparsity": []}
+										  for method in config["interpretability_methods"].keys()}
+
 	best_saliency_outputs_dict = {}
 
 	print("Applying interpretability methods")
@@ -243,29 +246,33 @@ if __name__ == '__main__':
 
 				if fold_number == index_max_roc_auc:
 					best_saliency_outputs_dict.update(saliency_output)
-		timing_dict["generate_score"].append(generate_score_execution_time)
+				timing_dict["generate_score"].append(generate_score_execution_time)
 
 		# Calculate qualitative metrics ================================================================================
-		fidelity, contrastivity, sparsity = compute_metric(model_list[fold_number], score_output, \
-		 		dataset_features, config, cmd_args.cuda)
-		qualitative_metrics_dict["fidelity"].append(fidelity)
-		qualitative_metrics_dict["contrastivity"].append(contrastivity)
-		qualitative_metrics_dict["sparsity"].append(sparsity)
+				fidelity, contrastivity, sparsity = compute_metric(model_list[fold_number], score_output, \
+					dataset_features, config, cmd_args.cuda)
 
-	run_statistics_string += "Fidelity (avg): %s " % \
-							 str(round(sum(qualitative_metrics_dict["fidelity"]) /
-								 len(qualitative_metrics_dict["fidelity"]),5))
-	run_statistics_string += "Contrastivity (avg): %s " % \
-							 str(round(sum(qualitative_metrics_dict["contrastivity"]) /
-								 len(qualitative_metrics_dict["contrastivity"]),5))
-	run_statistics_string += "Sparsity (avg): %s " % \
-							 str(round(sum(qualitative_metrics_dict["sparsity"]) /
-								 len(qualitative_metrics_dict["sparsity"]),5))
+				qualitative_metrics_dict_by_method[method]["fidelity"].append(fidelity)
+				qualitative_metrics_dict_by_method[method]["contrastivity"].append(contrastivity)
+				qualitative_metrics_dict_by_method[method]["sparsity"].append(sparsity)
+
+
+	for method, qualitative_metrics_dict in qualitative_metrics_dict_by_method.items():
+		run_statistics_string += "Qualitative metrics for method %s - " % method
+		run_statistics_string += "Fidelity (avg): %s " % \
+								 str(round(sum(qualitative_metrics_dict["fidelity"]) /
+									 len(qualitative_metrics_dict["fidelity"]),5))
+		run_statistics_string += "Contrastivity (avg): %s " % \
+								 str(round(sum(qualitative_metrics_dict["contrastivity"]) /
+									 len(qualitative_metrics_dict["contrastivity"]),5))
+		run_statistics_string += "Sparsity (avg): %s\n" % \
+								 str(round(sum(qualitative_metrics_dict["sparsity"]) /
+									 len(qualitative_metrics_dict["sparsity"]),5))
 
 	run_statistics_string += "\n"
 
 	# Create heatmap from the model with the best ROC_AUC output =======================================================
-	output_count = output_to_images(saliency_output, dataset_features, output_directory="results/image")
+	output_count = output_to_images(best_saliency_outputs_dict, dataset_features, output_directory="results/image")
 	print("Generated %s saliency map images." % output_count)
 
 	# Print run statistics =============================================================================================
