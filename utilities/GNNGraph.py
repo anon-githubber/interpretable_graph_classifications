@@ -82,7 +82,7 @@ class GNNGraph(object):
 		print(info_string)
 
 	def to_nxgraph(self):
-		nxgraph = nx.Graph()
+		nxgraph = nx.Graph(label=self.label)
 		for graph_node in range(self.number_of_nodes):
 			if len(self.node_labels) > 0:
 				nxgraph.add_node(graph_node, label=self.node_labels[graph_node])
