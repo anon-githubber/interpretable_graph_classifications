@@ -20,7 +20,7 @@ from utilities.output_results import output_to_images
 from utilities.metrics import auc_scores, compute_metric
 
 # Define timer list to report running statistics
-timing_dict = {"forward": [], "backward": [], "generate_score": []}
+timing_dict = {"forward": [], "backward": []}
 run_statistics_string = "Run statistics: \n"
 
 def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, optimizer=None):
@@ -229,6 +229,7 @@ if __name__ == '__main__':
 	# Begin applying interpretability methods ==========================================================================
 	index_max_roc_auc = np.argmax(model_metrics_dict["roc_auc"])
 
+	saliency_map_generation_time_dict = {method: [] for method in config["interpretability_methods"].keys()}
 	qualitative_metrics_dict_by_method = {method: {"fidelity": [], "contrastivity": [], "sparsity": []}
 										  for method in config["interpretability_methods"].keys()}
 
@@ -246,7 +247,7 @@ if __name__ == '__main__':
 
 				if fold_number == index_max_roc_auc:
 					best_saliency_outputs_dict.update(saliency_output)
-				timing_dict["generate_score"].append(generate_score_execution_time)
+				saliency_map_generation_time_dict[method].append(generate_score_execution_time)
 
 		# Calculate qualitative metrics ================================================================================
 				fidelity, contrastivity, sparsity = compute_metric(model_list[fold_number], score_output, \
@@ -255,7 +256,6 @@ if __name__ == '__main__':
 				qualitative_metrics_dict_by_method[method]["fidelity"].append(fidelity)
 				qualitative_metrics_dict_by_method[method]["contrastivity"].append(contrastivity)
 				qualitative_metrics_dict_by_method[method]["sparsity"].append(sparsity)
-
 
 	for method, qualitative_metrics_dict in qualitative_metrics_dict_by_method.items():
 		run_statistics_string += "Qualitative metrics for method %s - " % method
@@ -268,6 +268,9 @@ if __name__ == '__main__':
 		run_statistics_string += "Sparsity (avg): %s\n" % \
 								 str(round(sum(qualitative_metrics_dict["sparsity"]) /
 									 len(qualitative_metrics_dict["sparsity"]),5))
+		run_statistics_string += "Time taken to generate saliency scores: %s\n" % \
+								 str(round(sum(saliency_map_generation_time_dict[method]) /
+										   len(saliency_map_generation_time_dict[method]), 5))
 
 	run_statistics_string += "\n"
 
@@ -282,8 +285,6 @@ if __name__ == '__main__':
 	if len(timing_dict["backward"]) > 0:
 		run_statistics_string += "Average backward propagation time taken(ms): %s\n" %\
 								 str(sum(timing_dict["backward"])/len(timing_dict["backward"])* 1000)
-	run_statistics_string += "Average time taken to generate attribution scores(ms): %s\n" %\
-							 str(sum(timing_dict["generate_score"])/len(timing_dict["generate_score"]) * 1000)
 
 	print(run_statistics_string)
 
