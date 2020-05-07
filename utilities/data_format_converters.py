@@ -221,6 +221,34 @@ def dortmund_to_networkx(folder_directory, dataset_name):
 
 	return nxgraph_list
 
+
+def graphsig_to_networkx(sample_path):
+	graph_list = []
+	with open(sample_path, 'r') as f:
+		filedata = f.read().splitlines()
+		i = 0
+		while(True):
+			if filedata[i] != '' and filedata[i][0] == '#':
+				G = nx.Graph(label=0)
+				i += 1
+				no_of_nodes = int(filedata[i])
+				for j in range(no_of_nodes):
+					# G.add_node(j, label=filedata[i])
+					i += 1
+				i += 1
+				no_of_edges = int(filedata[i])
+				for j in range(no_of_edges):
+					i += 1
+					edge_data = filedata[i].split()
+					G.add_edge(edge_data[0], edge_data[1])
+				graph_list.append(G)
+			else:
+				i += 1
+			if i >= len(filedata):
+				break
+	return graph_list
+
+
 if __name__ == '__main__':
 	cmd_opt = argparse.ArgumentParser(description='Argparser for graph data formatter')
 	cmd_opt.add_argument('-format', default='dortmund', help='Format to convert from')
