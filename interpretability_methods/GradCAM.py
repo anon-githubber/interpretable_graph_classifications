@@ -5,7 +5,7 @@ import random
 from time import perf_counter
 from os import path
 from copy import deepcopy
-from captum.attr import Saliency
+from captum.attr import LayerGradCam
 from utilities.util import graph_to_tensor, normalize_scores
 
 def GradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
@@ -23,7 +23,7 @@ def GradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_f
 	dataset_features = dataset_features
 
 	# Perform deeplift on the classifier model
-	gc = LayerGradCam(classifier_model)
+	gc = LayerGradCam(classifier_model, classifier_model.graph_convolution)
 
 	output_for_metrics_calculation = []
 	output_for_generating_saliency_map = {}
@@ -36,21 +36,23 @@ def GradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_f
 		for _, label in dataset_features["label_dict"].items():
 			# Relabel all just in case, may only relabel those that need relabelling
 			# if performance is poor
-			GNNgraph_relabeled = deepcopy(GNNgraph)
-			GNNgraph_relabeled.label = label
+			original_label = GNNgraph.label
+			GNNgraph.label = label
 
 			node_feat, n2n, subg = graph_to_tensor(
-				[GNNgraph_relabeled], dataset_features["feat_dim"],
+				[GNNgraph], dataset_features["feat_dim"],
 				dataset_features["edge_feat_dim"], cuda)
 
 			subg = subg.size()[0]
 			start_generation = perf_counter()
-			attribution = sl.attribute(node_feat,
-								   additional_forward_args=(n2n, subg, [GNNgraph_relabeled]),
+			attribution = gc.attribute(node_feat,
+								   additional_forward_args=(n2n, subg, [GNNgraph]),
 								   target=label)
 			attribution_score = torch.sum(attribution, dim=1)
 			tmp_timing_list.append(perf_counter() - start_generation)
 			attribution_score = normalize_scores(attribution_score, -1, 1)
+
+			GNNgraph.label = original_label
 
 			output[label] = attribution_score
 		output_for_metrics_calculation.append(output)
@@ -62,15 +64,15 @@ def GradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_f
 		# Randomly sample from existing list:
 		graph_idxes = list(range(len(output_for_metrics_calculation)))
 		random.shuffle(graph_idxes)
-		output_for_generating_saliency_map.update({"saliency_class_%s" % str(label): []
+		output_for_generating_saliency_map.update({"gradcam_%s" % str(label): []
 												   for _, label in dataset_features["label_dict"].items()})
 
 		# Begin appending found samples
 		for index in graph_idxes:
 			tmp_label = output_for_metrics_calculation[index]['graph'].label
-			if len(output_for_generating_saliency_map["saliency_class_%s" % str(tmp_label)]) < \
+			if len(output_for_generating_saliency_map["gradcam_%s" % str(tmp_label)]) < \
 				interpretability_config["number_of_samples"]:
-				output_for_generating_saliency_map["saliency_class_%s" % str(tmp_label)].append(
+				output_for_generating_saliency_map["gradcam_%s" % str(tmp_label)].append(
 					(output_for_metrics_calculation[index]['graph'], output_for_metrics_calculation[index][tmp_label]))
 
 	return output_for_metrics_calculation, output_for_generating_saliency_map, execution_time

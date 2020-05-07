@@ -73,7 +73,8 @@ def occlude_graphs(metric_attribution_scores, dataset_features, importance_range
 
 		# Go through every node in graph to check if node is salient
 		for i in range(len(attribution_score)):
-			if is_salient(abs(float(attribution_score[i])), importance_range):
+			# Only occlude nodes that provide significant positive contribution
+			if is_salient((attribution_score[i]), importance_range):
 				# Occlude node
 				if dataset_features['have_node_labels'] is True:
 					GNNgraph.node_labels[i] = None
