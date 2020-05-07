@@ -1,7 +1,7 @@
 import torch
-import networkx as nx
 import json
 import random
+import networkx as nx
 
 from time import perf_counter
 from os import path
@@ -9,12 +9,13 @@ from copy import deepcopy
 from captum.attr import DeepLift
 from utilities.util import graph_to_tensor, normalize_scores
 
-def get_isomorphic_pairs(dataset_name, graph_list, k_fold, current_fold, max_pairs=5):
+def get_isomorphic_pairs(dataset_name, graph_list, k_fold, current_fold=None, max_pairs=5):
 	'''
 		Get isomorphic pairs to serve as a baseline to be used in DeepLIFT
 	:param data_file_name: name of the dataset
 	:param graph_list: a list of graphs to obtain isomorphic pairs
 	:param k_fold: the number of k folds used in this dataset, to account for isomorphic index changing every fold
+	:param current_fold: the fold where DeepLIFT is being currently applied to
 	:param max_pairs: max number of pairs to find. Set this to be low to decrease execution time
 	:return: two sets of list that contain indices of the isomorphic graphs
 	'''
