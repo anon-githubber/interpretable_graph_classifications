@@ -115,21 +115,23 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_
 		for _, label in dataset_features["label_dict"].items():
 			# Relabel all just in case, may only relabel those that need relabelling
 			# if performance is poor
-			GNNgraph_relabeled = deepcopy(GNNgraph)
-			GNNgraph_relabeled.label = label
+			original_label = GNNgraph.label
+			GNNgraph.label = label
 
 			node_feat, n2n, subg = graph_to_tensor(
-				[GNNgraph_relabeled], dataset_features["feat_dim"],
+				[GNNgraph], dataset_features["feat_dim"],
 				dataset_features["edge_feat_dim"], cuda)
 
 			subg = subg.size()[0]
 			start_generation = perf_counter()
 			attribution = dl.attribute(node_feat,
-								   additional_forward_args=(n2n, subg, [GNNgraph_relabeled]),
+								   additional_forward_args=(n2n, subg, [GNNgraph]),
 								   target=label)
 			tmp_timing_list.append(perf_counter() - start_generation)
 			attribution_score = torch.sum(attribution, dim=1)
 			attribution_score = normalize_scores(attribution_score, -1, 1)
+
+			GNNgraph.label = original_label
 
 			output[label] = attribution_score
 		output_for_metrics_calculation.append(output)

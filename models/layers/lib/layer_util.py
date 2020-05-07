@@ -6,7 +6,6 @@ class MySpMM(torch.autograd.Function):
 	@staticmethod
 	def forward(ctx, sp_mat, dense_mat):
 		ctx.save_for_backward(sp_mat, dense_mat)
-
 		return torch.mm(sp_mat, dense_mat)
 
 	@staticmethod
