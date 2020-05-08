@@ -9,6 +9,86 @@ from typing import Any
 
 from utilities.GNNGraph import GNNGraph
 
+def unserialize_pickle_file(path):
+	# Unserialize the pickled file
+	with open(path, 'rb') as pickled_file:
+		nxgraph_list = pickle.load(pickled_file)
+		pickled_file.close()
+
+	# Begin converting to format compatible with this codebase
+	graph_list = []
+	graph_labels_mapping_dict = {}
+	node_labels_mapping_dict = {}
+
+	# Relabel nodes
+	for i in range(len(nxgraph_list)):
+		relabel_mapping = {}
+		j = 0
+		for n in nxgraph_list[i].nodes:
+			relabel_mapping[n] = j
+			j += 1
+
+		nxgraph = nx.relabel_nodes(nxgraph_list[i], relabel_mapping, copy=True)
+
+		nxgraph_list[i] = nxgraph
+
+	# Prepare graph mapping dict and node mapping dict to retain the order of the graph and node labels
+	graph_mapping_list = []
+	node_mapping_list = []
+	for nxgraph in nxgraph_list:
+		graph_mapping_list.append(nxgraph.graph['label'])
+		for node in nxgraph.nodes:
+			node_mapping_list.append(node)
+
+	graph_label_set = set(graph_mapping_list)
+	i = 0
+	for graph_label in sorted(graph_label_set):
+		graph_labels_mapping_dict[str(graph_label)] = i
+		i += 1
+
+	node_label_set = set(node_mapping_list)
+	j = 0
+	for node_label in sorted(node_label_set):
+		node_labels_mapping_dict[str(node_label)] = j
+		j += 1
+
+
+	# Extract graph labels
+	graph_id = 0
+	for nxgraph in nxgraph_list:
+		# Get graph label
+		graph_label = graph_labels_mapping_dict[str(nxgraph.graph['label'])]
+
+		# Get node labels
+		node_labels = []
+
+		if "label" in nxgraph.nodes[0].keys():
+			for node in nxgraph.nodes:
+				node_label = str(nxgraph.nodes[node]['label'])
+				node_labels.append(node_labels_mapping_dict[node_label])
+			node_label_flag = True
+		else:
+			node_label_flag = False
+			node_labels = None
+
+		# Get node features/attributes
+		node_features = []
+		if "attribute" in nxgraph.nodes[0].keys():
+			for node in nxgraph.nodes:
+				node_features.append(np.array(nxgraph.nodes[node]['attribute']))
+
+			node_features = np.stack(node_features, axis=0)
+			node_feature_flag = True
+		else:
+			node_feature_flag = False
+			node_features = None
+
+		graph_list.append(GNNGraph(graph_id, nxgraph, graph_label, node_labels, node_features))
+		graph_id += 1
+
+	return graph_list
+
+
 def unserialize_pickle(dataset_name):
 	# Unserialize the pickled file
 	with open("data/%s/%s.p" % (dataset_name, dataset_name), 'rb') as pickled_file:
