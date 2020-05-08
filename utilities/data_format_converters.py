@@ -233,7 +233,7 @@ def graphsig_to_networkx(sample_path):
 				i += 1
 				no_of_nodes = int(filedata[i])
 				for j in range(no_of_nodes):
-					# G.add_node(j, label=filedata[i])
+					G.add_node(j)
 					i += 1
 				i += 1
 				no_of_edges = int(filedata[i])
