@@ -75,9 +75,9 @@ def occlude_graphs(metric_attribution_scores, dataset_features, importance_range
 		for i in range(len(attribution_score)):
 			# Only occlude nodes that provide significant positive contribution
 			if is_salient((attribution_score[i]), importance_range):
-				# Occlude node
+				# Occlude node by assigning it an "UNKNOWN" label
 				if dataset_features['have_node_labels'] is True:
-					GNNgraph.node_labels[i] = None
+					GNNgraph.node_labels[i] = max(dataset_features["label_dict"].values())
 				if dataset_features['have_node_attributions'] is True:
 					GNNgraph.node_features[i].fill(0)
 
