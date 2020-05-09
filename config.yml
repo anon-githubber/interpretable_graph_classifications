@@ -4,8 +4,8 @@ general:
   batch_size: 1
   extract_features: False
 run:
-  num_epochs : 3
-  learning_rate : 0.0001
+  num_epochs : 50
+  learning_rate : 0.001
   seed: 1800
   k_fold: 5
 GNN_models:
@@ -17,6 +17,9 @@ GNN_models:
     FP_len : 0
   GCN:
     convolution_layers_size : 128-256-512
+    dropout: 0.5
+  GCND:
+    convolution_layers_size: 128-256-512
     dropout: 0.5
   DiffPool:
     convolution_layers_size : 32-32-32
