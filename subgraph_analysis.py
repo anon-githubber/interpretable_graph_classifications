@@ -17,8 +17,8 @@ from networkx.algorithms import isomorphism
 import networkx as nx
 
 from utilities.load_data import load_model_data, unserialize_pickle_file
-from utilities.util import graph_to_tensor
-from utilities.output_results import output_to_images, output_subgraph_images
+from utilities.util import graph_to_tensor, get_node_labels_dict
+from utilities.output_results import output_to_images, output_subgraph_images, output_subgraph_list_to_images
 from utilities.metrics import auc_scores, is_salient
 from utilities.graphsig import convert_graphsig_to_gnn_graph
 
@@ -120,7 +120,9 @@ if __name__ == '__main__':
 	cmd_opt.add_argument('-gm', default='DGCNN', help='GNN model to use')
 	cmd_opt.add_argument('-data', default='TOX21', help='Dataset to use')
 	cmd_opt.add_argument('-retrain', default='0',
-											 help='Whether to re-train the classifier or use saved trained model')
+						 help='Whether to re-train the classifier or use saved trained model')
+	cmd_opt.add_argument('-graphsig', default='0', help='Perform graphsig subgraph analysis if 1')
+	cmd_opt.add_argument('-subgraph_explainability', default='0', help='Perform explainability subgraph analysis if 1')
 	cmd_args, _ = cmd_opt.parse_known_args()
 
 	# Get run configurations
@@ -145,7 +147,7 @@ if __name__ == '__main__':
 
 	# Instantiate the classifier using the configurations ==============================================================
 	# Use saved model only for subgraph analysis
-	if cmd_args.retrain == '0':
+	if cmd_args.retrain == '0' and cmd_args.subgraph_explainability != '0':
 		# Load classifier if it exists:
 		model_list = None
 		try:
@@ -171,16 +173,8 @@ if __name__ == '__main__':
 									 config, dataset_features)
 			print('\033[93maverage test: loss %.5f acc %.5f roc_auc %.5f prc_auc %.5f\033[0m' % (
 				test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
-	else:
+	elif cmd_args.retrain == '0':
 		print("Please use saved model to perform subgraph analysis.")
-
-	# Group sample graphs by label
-	# sampled_graphs = {}
-	# for graph in deepcopy(train_graphs + test_graphs):
-	#     if graph.label in sampled_graphs:
-	#         sampled_graphs[graph.label].append(graph.to_nxgraph())
-	#     else:
-	#         sampled_graphs[graph.label] = [graph.to_nxgraph()]
 
 	graph_list = deepcopy(train_graphs[0] + test_graphs[0])
 
@@ -193,143 +187,105 @@ if __name__ == '__main__':
 
 		print("Running method: " + str(method))
 		exec_string = "score_output, saliency_output, generate_score_execution_time = " \
-			"%s(model_list[fold_number], config," \
+			"%s(model_list[0], config," \
 			" dataset_features, test_graphs[fold_number], fold_number, cmd_args.cuda)" % method
 		exec(exec_string)
 
-		# TODO: Get significant subgraphs from output =========================================================================
-		# Remove irrelevant nodes
-		importance_range = config["metrics"]["fidelity"]["importance_range"].split(",")
-		importance_range = [float(bound) for bound in importance_range]
+		if cmd_args.subgraph_explainability == '1':
+			# Get significant subgraphs from output =========================================================================
+			# Remove irrelevant nodes
+			importance_range = config["metrics"]["fidelity"]["importance_range"].split(
+				",")
+			importance_range = [float(bound) for bound in importance_range]
 
-		modified_graphs = {0: [], 1: []}
-		for data in score_output:
-			graph = data['graph']
-			label = graph.label
-			class_0_score = data[0]
-			class_1_score = data[1]
-			graph = graph.to_nxgraph()
-			nodes_to_delete = []
-			score_to_use = class_0_score if label == 0 else class_1_score
-			for idx, node in enumerate(graph.nodes()):
-				if not is_salient(score_to_use[idx], importance_range):
-					nodes_to_delete.append(node)
-			graph.remove_nodes_from(nodes_to_delete)
-			modified_graphs[label].append(graph)
+			modified_graphs = {0: [], 1: []}
+			for data in score_output:
+				graph = data['graph']
+				label = graph.label
+				class_0_score = data[0]
+				class_1_score = data[1]
+				graph = graph.to_nxgraph()
+				nodes_to_delete = []
+				score_to_use = class_0_score if label == 0 else class_1_score
+				for idx, node in enumerate(graph.nodes()):
+					if not is_salient(score_to_use[idx], importance_range):
+						nodes_to_delete.append(node)
+				graph.remove_nodes_from(nodes_to_delete)
+				modified_graphs[label].append(graph)
 
-		# Generate subgraphs
-		subgraphs = {0: [], 1:[]}
-		for label, sg_list in modified_graphs.items():
-			for sg in sg_list:
-				component_subgraphs = [sg.subgraph(c).copy() for c in nx.connected_components(sg)]
-				for sg in component_subgraphs:
-					subgraphs[sg.graph['label']].append(sg)
+			# Generate subgraphs
+			subgraphs = {0: [], 1: []}
+			for label, sg_list in modified_graphs.items():
+				for sg in sg_list:
+					component_subgraphs = [sg.subgraph(
+						c).copy() for c in nx.connected_components(sg)]
+					for sg in component_subgraphs:
+						subgraphs[sg.graph['label']].append(sg)
 
-		# Calculate the frequencies in sample graphs
-		subgraphs_info = {0: [], 1: []}
-		for label, subgraph_list in subgraphs.items():
+			# Calculate the frequencies in sample graphs
+			subgraphs_info = {0: [], 1: []}
+			for label, subgraph_list in subgraphs.items():
+				for subgraph in subgraph_list:
+					class_0_count = 0
+					class_1_count = 1
+					for graph in graph_list:
+						GM = isomorphism.GraphMatcher(graph.to_nxgraph(), subgraph)
+						if GM.subgraph_is_isomorphic():
+							if graph.label == 0:
+								class_0_count += 1
+							else:
+								class_1_count += 1
+					subgraphs_info[label].append(
+						(subgraph, class_0_count, class_1_count))
+
+			# Sort by frequencies
+			for label, subgraphs_list in subgraphs_info.items():
+				subgraphs_list.sort(key=lambda x: x[label + 1], reverse=True)
+
+			# Output top 10 to image
+			for label, subgraphs_list in subgraphs_info.items():
+				output_subgraph_images(
+					subgraphs_list[:10], dataset_features, method)
+
+	if cmd_args.graphsig == '1':
+		# GraphSig subgraph analysis
+		# Load GraphSig significant subgraphs
+		graphsig_subgraph_list_class_0 = unserialize_pickle_file(
+			'data/%s/%s_class_0_graphsig' % (cmd_args.data, cmd_args.data))
+		graphsig_subgraph_list_class_1 = unserialize_pickle_file(
+			'data/%s/%s_class_1_graphsig' % (cmd_args.data, cmd_args.data))
+		graphsig_subgraphs = {0: graphsig_subgraph_list_class_0,
+							1: graphsig_subgraph_list_class_1}
+
+		node_labels_dict = get_node_labels_dict(cmd_args.data)
+
+		# Save subgraphs images
+		for label, graphsig_subgraph in graphsig_subgraphs.items():
+			output_subgraph_list_to_images(graphsig_subgraph, dataset_features, 'GraphSig', label, node_labels_dict, print_rank=False)
+			print('GraphSig subgraphs for class %s saved' % label)
+
+		# Get frequencies for significant subgraphs from GraphSig in sample graphs
+		graphsig_subgraphs_info = {0: [], 1: []}
+		for label, subgraph_list in graphsig_subgraphs.items():
 			for subgraph in subgraph_list:
 				class_0_count = 0
 				class_1_count = 1
 				for graph in graph_list:
-					GM = isomorphism.GraphMatcher(graph.to_nxgraph(), subgraph)
+					GM = isomorphism.GraphMatcher(
+						graph.to_nxgraph(), subgraph.to_nxgraph())
 					if GM.subgraph_is_isomorphic():
 						if graph.label == 0:
 							class_0_count += 1
 						else:
 							class_1_count += 1
-				subgraphs_info[label].append((subgraph, class_0_count, class_1_count))
+				graphsig_subgraphs_info[label].append(
+					(subgraph, class_0_count, class_1_count))
 
 		# Sort by frequencies
-		for label, subgraphs_list in subgraphs_info.items():
+		for label, subgraphs_list in graphsig_subgraphs_info.items():
 			subgraphs_list.sort(key=lambda x: x[label + 1], reverse=True)
-		
-		# Output to image
-		for label, subgraphs_list in subgraphs_info.items():
-			output_subgraph_images(subgraphs_list[:10], dataset_features, method)
-				
 
-	# GraphSig subgraph analysis
-	# Load GraphSig significant subgraphs
-	# graphsig_subgraph_list_class_0 = convert_graphsig_to_gnn_graph(
-	# 	'data/%s/graphsig/%s_class_0/significantGraphs.txt' % (cmd_args.data, cmd_args.data))
-	# graphsig_subgraph_list_class_1 = convert_graphsig_to_gnn_graph(
-	# 	'data/%s/graphsig/%s_class_1/significantGraphs.txt' % (cmd_args.data, cmd_args.data))
-	graphsig_subgraph_list_class_0 = unserialize_pickle_file(
-		'data/%s/graphsig/%s_class_0_graphsig' % (cmd_args.data, cmd_args.data))
-	graphsig_subgraph_list_class_1 = unserialize_pickle_file(
-		'data/%s/graphsig/%s_class_1_graphsig' % (cmd_args.data, cmd_args.data))
-	graphsig_subgraphs = {0: graphsig_subgraph_list_class_0, 1: graphsig_subgraph_list_class_1}
-
-	# Get frequencies for significant subgraphs from GraphSig in sample graphs
-	graphsig_subgraphs_info = {0: [], 1: []}
-	for label, subgraph_list in graphsig_subgraphs.items():
-		for subgraph in subgraph_list:
-			class_0_count = 0
-			class_1_count = 1
-			for graph in graph_list:
-				GM = isomorphism.GraphMatcher(graph.to_nxgraph(), subgraph.to_nxgraph())
-				if GM.subgraph_is_isomorphic():
-					if graph.label == 0:
-						class_0_count += 1
-					else:
-						class_1_count += 1
-			graphsig_subgraphs_info[label].append((subgraph, class_0_count, class_1_count))
-
-	# Sort by frequencies
-	for label, subgraphs_list in graphsig_subgraphs_info.items():
-		subgraphs_list.sort(key=lambda x: x[label + 1], reverse=True)
-	
-	# Output to image
-	for label, subgraphs_list in graphsig_subgraphs_info.items():
-		output_subgraph_images(subgraphs_list[:10], dataset_features, 'GraphSig')
-
-	# class_0_counts = []
-	# class_1_counts = []
-	# for subgraph in graphsig_subgraph_list_class_0:
-	# 	class_0_counter = 0
-	# 	for graph in graph_list:
-	# 		if graph.label == 0:
-	# 		GM = isomorphism.GraphMatcher(graph, subgraph.to_nxgraph())
-	# 		if GM.subgraph_is_isomorphic():
-	# 			class_0_counter += 1
-	# 	class_0_counts.append(class_0_counter)
-
-	# 	class_1_counter = 0
-	# 	for graph in sampled_graphs['1']:
-	# 		GM = isomorphism.GraphMatcher(graph, subgraph.to_nxgraph())
-	# 		if GM.subgraph_is_isomorphic():
-	# 			class_1_counter += 1
-	# 	class_1_counts.append(class_1_counter)
-
-	# for subgraph in graphsig_subgraph_list_class_1:
-	# 	class_0_counter = 0
-	# 	for graph in sampled_graphs['0']:
-	# 		GM = isomorphism.GraphMatcher(graph, subgraph.to_nxgraph())
-	# 		if GM.subgraph_is_isomorphic():
-	# 			class_0_counter += 1
-	# 	class_0_counts.append(class_0_counter)
-
-	# 	class_1_counter = 0
-	# 	for graph in sampled_graphs['1']:
-	# 		GM = isomorphism.GraphMatcher(graph, subgraph.to_nxgraph())
-	# 		if GM.subgraph_is_isomorphic():
-	# 			class_1_counter += 1
-	# 	class_1_counts.append(class_1_counter)
-
-	# subgraph_list = graphsig_subgraph_list_class_0 + graphsig_subgraph_list_class_1
-
-	# subgraph_list_with_frequencies = []
-	# for i in range(subgraph_list):
-	# 	subgraph_list_with_frequencies.append(
-	# 		(subgraph_list[i], class_0_counts[i], class_1_counts[i]))
-
-	# # Sort by various frequencies
-	# absolute_frequency = sorted(
-	# 	subgraph_list_with_frequencies, key=lambda subgraph: subgraph[1] + subgraph[2])
-	# class_0_frequency = sorted(
-	# 	subgraph_list_with_frequencies, key=lambda subgraph: subgraph[1])
-	# class_1_frequency = sorted(
-	# 	subgraph_list_with_frequencies, key=lambda subgraph: subgraph[2])
-
-	# # TODO: Output to image
+		# Output top 10 to image
+		for label, subgraphs_list in graphsig_subgraphs_info.items():
+			output_subgraph_images(
+				subgraphs_list[:10], dataset_features, 'GraphSig')
