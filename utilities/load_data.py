@@ -213,6 +213,7 @@ def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dat
 
 		dataset_features_string += "\n====================================================="
 
+		dataset_features["dataset_info"] = dataset_features_string
 		print(dataset_features_string)
 
 	# If no test number is specified, use stratified KFold sampling for train test split

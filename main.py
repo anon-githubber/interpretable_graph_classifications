@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import yaml
 import time
+import datetime
 
 import argparse
 from models import *
@@ -259,18 +260,20 @@ if __name__ == '__main__':
 
 	for method, qualitative_metrics_dict in qualitative_metrics_dict_by_method.items():
 		run_statistics_string += "Qualitative metrics for method %s - " % method
-		run_statistics_string += "Fidelity (avg): %s " % \
-								 str(round(sum(qualitative_metrics_dict["fidelity"]) /
-									 len(qualitative_metrics_dict["fidelity"]),5))
-		run_statistics_string += "Contrastivity (avg): %s " % \
-								 str(round(sum(qualitative_metrics_dict["contrastivity"]) /
-									 len(qualitative_metrics_dict["contrastivity"]),5))
-		run_statistics_string += "Sparsity (avg): %s\n" % \
-								 str(round(sum(qualitative_metrics_dict["sparsity"]) /
-									 len(qualitative_metrics_dict["sparsity"]),5))
-		run_statistics_string += "Time taken to generate saliency scores: %s\n" % \
-								 str(round(sum(saliency_map_generation_time_dict[method]) /
-										   len(saliency_map_generation_time_dict[method]), 5))
+
+		if config["interpretability_methods"][method]["enabled"] is True:
+			run_statistics_string += "Fidelity (avg): %s " % \
+									 str(round(sum(qualitative_metrics_dict["fidelity"]) /
+										 len(qualitative_metrics_dict["fidelity"]),5))
+			run_statistics_string += "Contrastivity (avg): %s " % \
+									 str(round(sum(qualitative_metrics_dict["contrastivity"]) /
+										 len(qualitative_metrics_dict["contrastivity"]),5))
+			run_statistics_string += "Sparsity (avg): %s\n" % \
+									 str(round(sum(qualitative_metrics_dict["sparsity"]) /
+										 len(qualitative_metrics_dict["sparsity"]),5))
+			run_statistics_string += "Time taken to generate saliency scores: %s\n" % \
+									 str(round(sum(saliency_map_generation_time_dict[method]) /
+											   len(saliency_map_generation_time_dict[method])*1000, 5))
 
 	run_statistics_string += "\n"
 
@@ -287,4 +290,18 @@ if __name__ == '__main__':
 								 str(sum(timing_dict["backward"])/len(timing_dict["backward"])* 1000)
 
 	print(run_statistics_string)
+
+	# Save dataset features and run statistics to log
+	current_datetime = datetime.datetime.now().strftime("%d%m%Y-%H%M%S")
+	log_file_name = "%s_%s_epochs_%s_learnrate_%s_folds_%s_datetime_%s.txt" %\
+				   (dataset_features["name"], cmd_args.gm, str(config["run"]["num_epochs"]),
+					str(config["run"]["learning_rate"]), str(config["run"]["k_fold"]),
+					str(current_datetime))
+	with open("results/logs/%s" % log_file_name, "w") as f:
+		if "dataset_info" in dataset_features.keys():
+			dataset_info = dataset_features["dataset_info"] + "\n"
+		else:
+			dataset_info = ""
+		f.write(dataset_info + run_statistics_string)
+
 
