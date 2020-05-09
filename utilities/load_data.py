@@ -1,11 +1,7 @@
 import numpy as np
 import networkx as nx
-from pysmiles import read_smiles
 import pickle
-import re
-import csv
 from sklearn.model_selection import StratifiedKFold
-from typing import Any
 
 from utilities.GNNGraph import GNNGraph
 
@@ -128,8 +124,6 @@ def unserialize_pickle(dataset_name):
 	node_mapping_list = []
 	for nxgraph in nxgraph_list:
 		graph_mapping_list.append(nxgraph.graph['label'])
-		for node in nxgraph.nodes:
-			node_mapping_list.append(node)
 
 	graph_label_set = set(graph_mapping_list)
 	i = 0
@@ -137,12 +131,24 @@ def unserialize_pickle(dataset_name):
 		graph_labels_mapping_dict[str(graph_label)] = i
 		i += 1
 
-	node_label_set = set(node_mapping_list)
-	j = 0
-	for node_label in sorted(node_label_set):
-		node_labels_mapping_dict[str(node_label)] = j
-		j += 1
+	if "label" in nxgraph.nodes[0].keys():
+		for nxgraph in nxgraph_list:
+			for node in nxgraph.nodes:
+				node_mapping_list.append(nxgraph.nodes[node]['label'])
 
+		node_label_set = set(node_mapping_list)
+		j = 0
+
+		for node_label in sorted(node_label_set):
+			node_labels_mapping_dict[str(node_label)] = j
+			j += 1
+
+		# Add an additional node label for possible use in occlusion later in metrics.py
+		new_node_label = len(node_labels_mapping_dict)
+		node_labels_mapping_dict["UNKNOWN"] = new_node_label
+
+	else:
+		node_labels_mapping_dict = {}
 
 	# Extract graph labels
 	graph_id = 0
@@ -298,6 +304,7 @@ def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dat
 
 		dataset_features_string += "\n====================================================="
 
+		dataset_features["dataset_info"] = dataset_features_string
 		print(dataset_features_string)
 
 	# If no test number is specified, use stratified KFold sampling for train test split
