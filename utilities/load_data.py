@@ -37,8 +37,6 @@ def unserialize_pickle_file(path):
 	node_mapping_list = []
 	for nxgraph in nxgraph_list:
 		graph_mapping_list.append(nxgraph.graph['label'])
-		for node in nxgraph.nodes:
-			node_mapping_list.append(node)
 
 	graph_label_set = set(graph_mapping_list)
 	i = 0
@@ -46,11 +44,24 @@ def unserialize_pickle_file(path):
 		graph_labels_mapping_dict[str(graph_label)] = i
 		i += 1
 
-	node_label_set = set(node_mapping_list)
-	j = 0
-	for node_label in sorted(node_label_set):
-		node_labels_mapping_dict[str(node_label)] = j
-		j += 1
+	if "label" in nxgraph.nodes[0].keys():
+		for nxgraph in nxgraph_list:
+			for node in nxgraph.nodes:
+				node_mapping_list.append(nxgraph.nodes[node]['label'])
+
+		node_label_set = set(node_mapping_list)
+		j = 0
+
+		for node_label in sorted(node_label_set):
+			node_labels_mapping_dict[str(node_label)] = j
+			j += 1
+
+		# Add an additional node label for possible use in occlusion later in metrics.py
+		new_node_label = len(node_labels_mapping_dict)
+		node_labels_mapping_dict["UNKNOWN"] = new_node_label
+
+	else:
+		node_labels_mapping_dict = {}
 
 
 	# Extract graph labels

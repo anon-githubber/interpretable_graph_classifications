@@ -99,7 +99,7 @@ def output_to_images(output, dataset_features, custom_label_mapping=None, output
     return total_output_count
 
 
-def output_subgraph_images(subgraph_info_list, dataset_features, method, output_path="results/subgraph_analysis"):
+def output_subgraph_images(subgraph_info_list, dataset_features, method, print_rank=True, output_path="results/subgraph_analysis"):
     '''
     :param subgraph_info: information of subgraph frequencies in the following form
                                                                       [(subgraph,  class_0_frequency, class_1_frequency)]. Input should be sorted by the actual class frequency.
@@ -138,8 +138,13 @@ def output_subgraph_images(subgraph_info_list, dataset_features, method, output_
 
         class_0_freq = "Class 0 frequency: %d" % class_0_frequency
         class_1_freq = "Class 1 frequency: %d" % class_1_frequency
-        plt.title("Frequent subgraph, Label:%s Rank:%d \n %s\n%s" %
-                  (graph_label, idx + 1, class_0_freq, class_1_freq), fontdict={'fontsize': 8, 'fontweight': 'medium'})
+        if print_rank:
+            title = "Frequent subgraph, Label:%s \n %s\n%s" % (
+                graph_label, idx + 1, class_0_freq, class_1_freq)
+        else:
+            title = "Frequent subgraph, Label:%s \n %s\n%s" % (
+                graph_label, class_0_freq, class_1_freq)
+        plt.title(title, fontdict={'fontsize': 8, 'fontweight': 'medium'})
         plt.axis('off')
 
         # Output image to file
@@ -156,5 +161,65 @@ def output_subgraph_images(subgraph_info_list, dataset_features, method, output_
 
         image_output_path = "%s/%s/%s/class_%s/subgraph_rank_%d.png" % (
             output_path, dataset_features["name"], method, graph_label, idx)
+        plt.savefig(image_output_path)
+        plt.clf()
+
+def output_subgraph_list_to_images(subgraph_list, dataset_features, method, label, node_labels_dict, print_rank=True, output_path="results/subgraph_analysis"):
+    '''
+    :param subgraph_info: information of subgraph frequencies in the following form
+                                                                      [(subgraph,  class_0_frequency, class_1_frequency)]. Input should be sorted by the actual class frequency.
+    :param output_path: the path to output the image files
+    '''
+    for idx, subgraph in enumerate(subgraph_list):
+        nxgraph = subgraph.to_nxgraph()
+
+        # Restore node and graph labels to the same as dataset
+        inverse_graph_label_dict = {v: k for k,
+                                    v in dataset_features["label_dict"].items()}
+        inverse_node_label_dict = {v: k for k,
+                                   v in dataset_features["node_dict"].items()}
+
+        # Obtain original node labels if mapping is available, else leave blank for all nodes
+        if dataset_features["have_node_labels"] is True:
+            node_labels = {x[0]: node_labels_dict.get(inverse_node_label_dict[x[1]])
+                           for x in nxgraph.nodes("label")}
+
+        else:
+            node_labels = {x[0]: " " for x in nxgraph.nodes("label")}
+
+        # Draw the network graph
+        # Get position of nodes using kamada_kawai layout
+        pos = nx.kamada_kawai_layout(nxgraph)
+        nodes = nxgraph.nodes()
+        ec = nx.draw_networkx_edges(nxgraph, pos, alpha=0.2)
+        nc = nx.draw_networkx_nodes(
+            nxgraph, pos, nodelist=nodes, with_labels=False, node_size=200, cmap=plt.cm.coolwarm)
+
+        nt = nx.draw_networkx_labels(
+            nxgraph, pos, node_labels, font_size=12)
+
+        if print_rank:
+            title = "Frequent subgraph, Label:%s \n" % (
+                label, idx + 1)
+        else:
+            title = "Frequent subgraph, Label:%s \n" % (
+                label)
+        plt.title(title, fontdict={'fontsize': 8, 'fontweight': 'medium'})
+        plt.axis('off')
+
+        # Output image to file
+        directory_name = output_path + "/" + \
+            dataset_features["name"] + "/" + \
+            method + "/class_" + str(label)
+        try:
+            # Create target Directory if not exist
+            os.mkdir(directory_name)
+            print("Directory ", directory_name,
+                  " created in results directory")
+        except FileExistsError:
+            pass
+
+        image_output_path = "%s/%s/%s/class_%s/subgraph_idx_%d.png" % (
+            output_path, dataset_features["name"], method, label, idx)
         plt.savefig(image_output_path)
         plt.clf()
