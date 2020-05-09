@@ -162,8 +162,13 @@ def hamming(s1, s2):
 
 
 def normalize_scores(scores, lower, upper):
-	minimum = min(scores)
-	maximum = max(scores)
-	scores = [lower + (score - minimum) * (upper - lower) /
-			  (maximum - minimum) for score in scores]
-	return scores
+    minimum = min(scores)
+    maximum = max(scores)
+    scores = [lower + (score - minimum) * (upper - lower) /
+              (maximum - minimum) for score in scores]
+    return scores
+
+def get_node_labels_dict(dataset):
+    with open('data/%s/label_map.json' % dataset) as json_file:
+        labels_dict = json.load(json_file)
+        return labels_dict
