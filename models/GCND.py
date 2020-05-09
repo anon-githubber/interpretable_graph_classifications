@@ -5,9 +5,9 @@ from models.lib.weight_util import weights_init
 from torch.nn.parameter import Parameter
 from models.layers.graph_convolution_layers import GraphConvolutionLayers_DGCNN
 
-class GCN(nn.Module):
+class GCND(nn.Module):
 	def __init__(self, config, dataset_features, regression=False):
-		super(GCN, self).__init__()
+		super(GCND, self).__init__()
 		self.regression = regression
 		self.config = config
 		self.dataset_features = dataset_features

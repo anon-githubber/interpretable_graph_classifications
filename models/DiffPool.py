@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from models.lib.weight_util import weights_init
 from models.layers.graph_convolution_layers import GraphConvolutionLayers_GraphSAGE
@@ -22,6 +23,11 @@ class DiffPool(nn.Module):
 			num_node_feats=dataset_features["feat_dim"]+dataset_features["attr_dim"],
 			num_edge_feats=dataset_features["edge_feat_dim"], concat_tensors=True)
 
+		self.graph_assign = GraphConvolutionLayers_GraphSAGE(
+			latent_dim=self.config["convolution_layers_size"],
+			num_node_feats=dataset_features["feat_dim"] + dataset_features["attr_dim"],
+			num_edge_feats=dataset_features["edge_feat_dim"], concat_tensors=True)
+
 		# self.softassign_graph_convolution = SoftAssignGraphConvolutionLayer(
 		# 	latent_dim=self.config["convolution_layers_size"],
 		# 	num_node_feats=dataset_features["feat_dim"]+dataset_features["attr_dim"],
@@ -32,7 +38,10 @@ class DiffPool(nn.Module):
 		graph_sizes = [batch_graph[i].number_of_nodes for i in range(len(batch_graph))]
 
 		embedding_tensor = self.graph_convolution(node_feat, adjacency_matrix, batch_graph)
-		print(embedding_tensor)
+
+		print(embedding_tensor.size())
+		out, _ = torch.max(embedding_tensor, dim=0)
+		print(out.size())
 		exit()
 		#assign_tensor = self.softassign_graph_convolution(node_feat, adjacency_matrix, batch_graph)
 

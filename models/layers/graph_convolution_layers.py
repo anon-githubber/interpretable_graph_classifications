@@ -141,15 +141,12 @@ class GraphConvolutionLayers_GraphSAGE(nn.Module):
 			self.conv_layers.append(GraphConvolutionLayer_GraphSAGE(latent_dim[i-1], latent_dim[i], dropout))
 
 	def forward(self, node_feat, adjacency_matrix, batch_graph):
-		node_degs = [torch.Tensor(batch_graph[i].node_degrees) + 1 for i in range(len(batch_graph))]
-		node_degs = torch.cat(node_degs).unsqueeze(1)
-
 		# Graph Convolution Layers Forward
 		lv = 0
 		output_matrix = node_feat
 		cat_output_matrix = []
 		while lv < len(self.latent_dim):
-			output_matrix = self.conv_layers[lv](output_matrix, adjacency_matrix, node_degs)
+			output_matrix = self.conv_layers[lv](output_matrix, adjacency_matrix)
 			cat_output_matrix.append(output_matrix)
 			lv += 1
 

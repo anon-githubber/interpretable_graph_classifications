@@ -57,6 +57,40 @@ def get_accuracy(trained_classifier_model, GNNgraph_list, dataset_features, cuda
 
 	return sum(true_equal_pred_pairs)/len(true_equal_pred_pairs)
 
+def get_roc_auc(trained_classifier_model, GNNgraph_list, dataset_features, cuda):
+	trained_classifier_model.eval()
+	score_list = []
+	target_list = []
+
+	if dataset_features["num_class"] > 2:
+		print("Unable to calculate fidelity for multiclass datset")
+		return 0
+
+	# Instead of sending the whole list as batch,
+	# do it one by one in case classifier do not support batch-processing
+	# TODO: Enable batch processing support
+	for GNNgraph in GNNgraph_list:
+		node_feat, n2n, subg = graph_to_tensor(
+            [GNNgraph], dataset_features["feat_dim"],
+            dataset_features["edge_feat_dim"], cuda)
+
+		subg = subg.size()[0]
+
+		output = trained_classifier_model(node_feat, n2n, subg, [GNNgraph])
+		logits = F.log_softmax(output, dim=1)
+		prob = F.softmax(logits, dim=1)
+
+		score_list.append(prob.cpu().detach())
+		target_list.append(GNNgraph.label)
+
+	score_list = torch.cat(score_list).cpu().numpy()
+	score_list = score_list[:, 1]
+
+	roc_auc = metrics.roc_auc_score(
+		target_list, score_list, average='macro')
+
+	return roc_auc
+
 def is_salient(score, importance_range):
 	start, end = importance_range
 	if start <= score <= end:
@@ -75,11 +109,12 @@ def occlude_graphs(metric_attribution_scores, dataset_features, importance_range
 		for i in range(len(attribution_score)):
 			# Only occlude nodes that provide significant positive contribution
 			if is_salient((attribution_score[i]), importance_range):
-				# Occlude node
+				# Occlude node by assigning it an "UNKNOWN" label
 				if dataset_features['have_node_labels'] is True:
 					GNNgraph.node_labels[i] = None
 				if dataset_features['have_node_attributions'] is True:
 					GNNgraph.node_features[i].fill(0)
+
 		occluded_GNNgraph_list.append(GNNgraph)
 	return occluded_GNNgraph_list
 
@@ -90,11 +125,15 @@ def get_fidelity(trained_classifier_model, metric_attribution_scores, dataset_fe
 
 	GNNgraph_list = [group["graph"] for group in metric_attribution_scores]
 
-	accuracy_prior_occlusion = get_accuracy(trained_classifier_model, GNNgraph_list, dataset_features, cuda)
-	occluded_GNNgraph_list = occlude_graphs(metric_attribution_scores, dataset_features, importance_range)
-	accuracy_after_occlusion = get_accuracy(trained_classifier_model, occluded_GNNgraph_list, dataset_features, cuda)
+	# accuracy_prior_occlusion = get_accuracy(trained_classifier_model, GNNgraph_list, dataset_features, cuda)
+	# occluded_GNNgraph_list = occlude_graphs(metric_attribution_scores, dataset_features, importance_range)
+	# accuracy_after_occlusion = get_accuracy(trained_classifier_model, occluded_GNNgraph_list, dataset_features, cuda)
 
-	fidelity_score = accuracy_prior_occlusion - accuracy_after_occlusion
+	roc_auc_prior_occlusion = get_roc_auc(trained_classifier_model, GNNgraph_list, dataset_features, cuda)
+	occluded_GNNgraph_list = occlude_graphs(metric_attribution_scores, dataset_features, importance_range)
+	roc_auc_after_occlusion = get_roc_auc(trained_classifier_model, occluded_GNNgraph_list, dataset_features, cuda)
+
+	fidelity_score = roc_auc_prior_occlusion - roc_auc_after_occlusion
 	return fidelity_score
 
 # Contrastivity ====================================================================
