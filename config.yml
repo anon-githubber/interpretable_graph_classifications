@@ -4,7 +4,7 @@ general:
   batch_size: 1
   extract_features: False
 run:
-  num_epochs : 50
+  num_epochs : 3
   learning_rate : 0.001
   seed: 1800
   k_fold: 5
@@ -22,9 +22,12 @@ GNN_models:
     convolution_layers_size: 128-256-512
     dropout: 0.5
   DiffPool:
-    convolution_layers_size : 32-32-32
+    convolution_layers_size : 64-64-64
+    pred_hidden_layers: 50-50-50
     assign_ratio: 0.25
-    assign_pred_hidden_dim: 50
+    number_of_pooling: 2
+    link_prediction: False
+    concat_tensors: True
 interpretability_methods:
   DeepLIFT:
     enabled: True

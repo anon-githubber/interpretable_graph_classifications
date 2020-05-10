@@ -3,28 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class MLPRegression(nn.Module):
-	def __init__(self, input_size, hidden_size, dropout=0.5):
-		super(MLPRegression, self).__init__()
-
-		self.h1_weights = nn.Linear(input_size, hidden_size)
-		self.h2_weights = nn.Linear(hidden_size, 1)
-
-		self.dropout = dropout
-		if self.dropout > 0.001:
-			self.dropout_layer = nn.Dropout(p=dropout)
-		else:
-			self.dropout_layer = None
-
-	def forward(self, x):
-		h1 = self.h1_weights(x)
-		h1 = torch.relu(h1)
-
-		if self.dropout_layer is not None:
-			h1 = self.dropout_layer(dropout_layer)
-
-		return self.h2_weights(h1)
-
 class MLPClassifier(nn.Module):
 	def __init__(self, hidden_size, num_class, output_dim, dropout=0.5,
 		latent_dim=[32, 32, 32, 1], k=30, conv1d_channels=[16, 32], conv1d_kws=[0, 5],

@@ -8,19 +8,14 @@ class GraphConvolutionLayers_GCN(nn.Module):
 		Graph Convolution layers
 	'''
 	def __init__(self,
-		num_node_feats,
-		num_edge_feats,
+		input_dim,
 		latent_dim=[128, 256, 512],
 		concat_tensors=False,
 		dropout=0.0):
 
-		print('Initializing Graph Convolution Layers')
-
 		# Intialise settings
 		super(GraphConvolutionLayers_GCN, self).__init__()
 		self.latent_dim = latent_dim
-		self.num_node_feats = num_node_feats
-		self.num_edge_feats = num_edge_feats
 		self.total_latent_dim = sum(latent_dim)
 		self.concat_tensors = concat_tensors
 
@@ -28,7 +23,7 @@ class GraphConvolutionLayers_GCN(nn.Module):
 		self.conv_layers = nn.ModuleList()
 
 		# First layer takes in the node feature X
-		self.conv_layers.append(GraphConvolutionLayer_GCN(num_node_feats + num_edge_feats,
+		self.conv_layers.append(GraphConvolutionLayer_GCN(input_dim,
 													  latent_dim[0],
 													  dropout))
 
@@ -60,19 +55,14 @@ class GraphConvolutionLayers_DGCNN(nn.Module):
 		Graph Convolution layers
 	'''
 	def __init__(self,
-		num_node_feats,
-		num_edge_feats,
+		input_dim,
 		latent_dim=[32, 32, 32, 1],
 		concat_tensors=False,
 		dropout=0.0):
 
-		print('Initializing Graph Convolution Layers')
-
 		# Intialise settings
 		super(GraphConvolutionLayers_DGCNN, self).__init__()
 		self.latent_dim = latent_dim
-		self.num_node_feats = num_node_feats
-		self.num_edge_feats = num_edge_feats
 		self.total_latent_dim = sum(latent_dim)
 		self.concat_tensors = concat_tensors
 
@@ -80,7 +70,7 @@ class GraphConvolutionLayers_DGCNN(nn.Module):
 		self.conv_layers = nn.ModuleList()
 
 		# First layer takes in the node feature X
-		self.conv_layers.append(GraphConvolutionLayer_DGCNN(num_node_feats + num_edge_feats,
+		self.conv_layers.append(GraphConvolutionLayer_DGCNN(input_dim,
 													  latent_dim[0],
 													  dropout))
 
@@ -112,19 +102,14 @@ class GraphConvolutionLayers_GraphSAGE(nn.Module):
 		Graph Convolution layers
 	'''
 	def __init__(self,
-		num_node_feats,
-		num_edge_feats,
-		latent_dim=[32, 32, 32, 1],
+		input_dim,
+		latent_dim=[64, 64, 64],
 		concat_tensors=False,
 		dropout=0.0):
-
-		print('Initializing Graph Convolution Layers')
 
 		# Intialise settings
 		super(GraphConvolutionLayers_GraphSAGE, self).__init__()
 		self.latent_dim = latent_dim
-		self.num_node_feats = num_node_feats
-		self.num_edge_feats = num_edge_feats
 		self.total_latent_dim = sum(latent_dim)
 		self.concat_tensors = concat_tensors
 
@@ -132,9 +117,9 @@ class GraphConvolutionLayers_GraphSAGE(nn.Module):
 		self.conv_layers = nn.ModuleList()
 
 		# First layer takes in the node feature X
-		self.conv_layers.append(GraphConvolutionLayer_GraphSAGE(num_node_feats + num_edge_feats,
-													  latent_dim[0],
-													  dropout))
+		self.conv_layers.append(GraphConvolutionLayer_GraphSAGE(input_dim,
+													  latent_dim[0], add_self = not self.concat_tensors,
+													  dropout = dropout))
 
 		# Following layers take latent dim of previous convolution layer as input
 		for i in range(1, len(latent_dim)):

@@ -79,6 +79,7 @@ class GraphConvolutionLayer_GraphSAGE(nn.Module):
 	def __init__(self,
 		 		input_dim,
 				latent_dim,
+				add_self=False,
 				normalize_embedding=True,
 				bias=True,
 				dropout=0.0):
@@ -88,6 +89,7 @@ class GraphConvolutionLayer_GraphSAGE(nn.Module):
 		self.latent_dim = latent_dim
 		self.dropout = dropout
 		self.normalize_embedding = normalize_embedding
+		self.add_self = add_self
 
 		if bias:
 			self.bias = nn.Parameter(torch.FloatTensor(latent_dim))
@@ -99,7 +101,7 @@ class GraphConvolutionLayer_GraphSAGE(nn.Module):
 		else:
 			self.dropout_layer = None
 
-		self.conv_params = nn.Linear(input_dim, latent_dim)
+		self.weight = nn.Parameter(torch.FloatTensor(input_dim, latent_dim))
 
 
 	def forward(self, input_tensor, adjacency_matrix):
@@ -107,8 +109,11 @@ class GraphConvolutionLayer_GraphSAGE(nn.Module):
 		if self.dropout > 0.001:
 			input_tensor = self.dropout_layer(input_tensor)
 
-		adjacency_matrixpool = gnn_spmm(adjacency_matrix, input_tensor) + input_tensor  # Y = (A + I) * X
-		node_linear = self.conv_params(adjacency_matrixpool) # Y * W
+		adjacency_matrixpool = torch.mm(adjacency_matrix, input_tensor) + input_tensor  # Y = A * X
+		if self.add_self:
+			adjacency_matrixpool + input_tensor # Y = (A + I) * X
+
+		node_linear = torch.matmul(adjacency_matrixpool, self.weight) # Y * W
 
 		if self.bias is not None:
 			node_linear = node_linear + self.bias
