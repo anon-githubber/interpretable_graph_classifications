@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 import math
 
 from models.lib.weight_util import weights_init
@@ -18,8 +19,8 @@ class DGCNN(nn.Module):
 
 		self.graph_convolution = GraphConvolutionLayers_DGCNN(
 			latent_dim=self.config["convolution_layers_size"],
-			num_node_feats=dataset_features["feat_dim"]+dataset_features["attr_dim"],
-			num_edge_feats=dataset_features["edge_feat_dim"], concat_tensors=True)
+			input_dim=dataset_features["feat_dim"] + dataset_features["attr_dim"] + dataset_features["edge_feat_dim"],
+			concat_tensors=True)
 
 		# Initialise Sortpooling Layer
 		if 1 >= self.config["sortpooling_k"] > 0:
@@ -44,17 +45,14 @@ class DGCNN(nn.Module):
 			latent_dim=self.config["convolution_layers_size"],
 			k=self.config["sortpooling_k"])
 
-
-
 		weights_init(self)
 
-	def forward(self, node_feat, n2n, subg_size, batch_graph):
+	def forward(self, node_feat, adjacency_matrix, subg_size, batch_graph):
 		graph_sizes = [batch_graph[i].number_of_nodes for i in range(len(batch_graph))]
 
-		output_matrix = self.graph_convolution(node_feat, n2n, batch_graph)
+		output_matrix = self.graph_convolution(node_feat, adjacency_matrix, batch_graph)
 		embed, _ = self.sort_pool(output_matrix, subg_size, graph_sizes)
 		return self.mlp(embed, graph_sizes)
 
-	def output_features(self, batch_graph):
-		embed = self.graph_convolution(batch_graph)
-		return embed, labels
+	def loss(self, logits, labels):
+		return F.nll_loss(logits, labels)
