@@ -5,7 +5,7 @@ general:
   extract_features: False
 run:
   num_epochs : 50
-  learning_rate : 0.001
+  learning_rate : 0.0001
   seed: 1800
   k_fold: 5
 GNN_models:
@@ -26,8 +26,7 @@ GNN_models:
     pred_hidden_layers: 50-50-50
     assign_ratio: 0.25
     number_of_pooling: 2
-    link_prediction: True
-    concat_tensors: True
+    concat_tensors: False
 interpretability_methods:
   DeepLIFT:
     enabled: True

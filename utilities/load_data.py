@@ -263,16 +263,26 @@ def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dat
 
 		# Get node statistics
 		unique_node_labels_count_list = []
+		unique_node_features_per_graph_count_list = []
+		unique_node_features_per_node_count_list = []
 		node_labels_count_dict = {}
 
-		for graph in graph_list:
-			unique_node_labels_count_list.append(len(graph.unique_node_labels))
-			for node_label in graph.node_labels:
-				original_node_label = inverse_node_label_dict[node_label]
-				if original_node_label not in node_labels_count_dict.keys():
-					node_labels_count_dict[original_node_label] = 1
-				else:
-					node_labels_count_dict[original_node_label] += 1
+		if graph.node_labels is not None:
+			for graph in graph_list:
+				unique_node_labels_count_list.append(len(graph.unique_node_labels))
+				for node_label in graph.node_labels:
+					original_node_label = inverse_node_label_dict[node_label]
+					if original_node_label not in node_labels_count_dict.keys():
+						node_labels_count_dict[original_node_label] = 1
+					else:
+						node_labels_count_dict[original_node_label] += 1
+
+		if graph.node_features is not None:
+			for graph in graph_list:
+				sum_node_features_in_graph = [sum(x) for x in zip(*graph.node_features)]
+				unique_node_features_per_graph_count_list.append(sum([_ > 0 for _ in sum_node_features_in_graph]))
+				for node_feature in graph.node_features:
+					unique_node_features_per_node_count_list.append(sum([_ > 0 for _ in node_feature]))
 
 		# Get Edge statistics
 		edge_count_list = []
@@ -292,15 +302,25 @@ def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dat
 		dataset_features_string += "\n\n"
 		dataset_features_string += "== Node information== \n"
 		dataset_features_string += "Average number of nodes: " + str(dataset_features['avg_num_nodes']) + "\n"
-		dataset_features_string += "Average number of edges (undirected): " + str(round(sum(edge_count_list)/len(graph_list))) + "\n"
+		dataset_features_string += "Average number of edges (undirected): " + \
+								   str(round(sum(edge_count_list)/len(graph_list))) + "\n"
 		dataset_features_string += "Max number of nodes: " + str(dataset_features['max_num_nodes']) + "\n"
-		dataset_features_string += "Number of distinct node labels: " + str(len(node_labels_count_dict)) + "\n"
-		dataset_features_string += "Average number of distinct node labels: " + \
-								   str(round(sum(unique_node_labels_count_list)/len(graph_list))) + "\n"
-		dataset_features_string += "Node labels distribution: " + "\n"
 
-		for node_label in sorted(node_labels_count_dict.keys()):
-			dataset_features_string += '{}:{} '.format(node_label, node_labels_count_dict[node_label])
+		if graph.node_labels is not None:
+			dataset_features_string += "Number of distinct node labels: " + str(len(node_labels_count_dict)) + "\n"
+			dataset_features_string += "Average number of distinct node labels: " + \
+									   str(round(sum(unique_node_labels_count_list)/len(graph_list))) + "\n"
+			dataset_features_string += "Node labels distribution: " + "\n"
+
+			for node_label in sorted(node_labels_count_dict.keys()):
+				dataset_features_string += '{}:{} '.format(node_label, node_labels_count_dict[node_label])
+
+		if graph.node_features is not None:
+			dataset_features_string += "Average number of distinct node features per graph: " + \
+								   str(round(sum(unique_node_features_per_graph_count_list)/len(graph_list))) + "\n"
+
+			dataset_features_string += "Average number of distinct node features per node: " + \
+								   str(round(sum(unique_node_features_per_node_count_list)/len(unique_node_features_per_node_count_list))) + "\n"
 
 		dataset_features_string += "\n====================================================="
 

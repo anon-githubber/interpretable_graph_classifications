@@ -17,7 +17,6 @@ class DiffPool(nn.Module):
 		self.concat_tensors = config["concat_tensors"]
 		self.num_pooling = config["number_of_pooling"]
 		self.assign_ratio = config["assign_ratio"]
-		self.linkpred = config["link_prediction"]
 		self.input_dim = dataset_features["feat_dim"] + dataset_features["attr_dim"] + dataset_features["edge_feat_dim"]
 
 		# Embedding Tensor
@@ -70,8 +69,12 @@ class DiffPool(nn.Module):
 		self.config["pred_hidden_layers"] = \
 			list(map(int, self.config["pred_hidden_layers"].split('-')))
 
-		self.prediction_model = DenseLayers(self.pred_input_dim * (self.num_pooling+1), dataset_features["num_class"],
-											self.config["pred_hidden_layers"])
+		if self.concat_tensors is True:
+			self.prediction_model = DenseLayers(self.pred_input_dim * (self.num_pooling+1), dataset_features["num_class"],
+												self.config["pred_hidden_layers"])
+		else:
+			self.prediction_model = DenseLayers(self.pred_input_dim, dataset_features["num_class"],
+												self.config["pred_hidden_layers"])
 
 		# Initialise weights
 		for m in self.modules():
@@ -94,7 +97,6 @@ class DiffPool(nn.Module):
 		out_all.append(out)
 
 		for stack in range(self.num_pooling):
-
 			assign_tensor = self.assign_modules[stack](node_feat_a, adjacency_matrix, batch_graph)
 
 			self.assign_tensor = nn.Softmax(dim	=-1)(self.assign_pred_modules[stack](assign_tensor))
@@ -118,32 +120,6 @@ class DiffPool(nn.Module):
 
 		return pred
 
-	def loss(self, logits, labels, type='softmax', adj_hop=1):
-		'''
-		Args:
-			batch_num_nodes: numpy array of number of nodes in each graph in the minibatch.
-		'''
-		eps = 1e-7
+	def loss(self, logits, labels):
 		loss = F.cross_entropy(logits, labels, reduction='mean')
-
-		if self.linkpred:
-			adj = self.input_adj
-			max_num_nodes = self.dataset_features["max_num_nodes"]
-
-			pred_adj0 = self.assign_tensor @ torch.transpose(self.assign_tensor, 0, 1)
-			tmp = pred_adj0
-			pred_adj = pred_adj0
-			for _ in range(adj_hop-1):
-				tmp = tmp @ pred_adj0
-				pred_adj = pred_adj + tmp
-
-			pred_adj = torch.min(pred_adj, torch.Tensor(1))
-
-			self.link_loss = -adj * torch.log(pred_adj+eps) - (1-adj) * torch.log(1-pred_adj+eps)
-			num_entries = max_num_nodes * max_num_nodes * adj.size()[0]
-
-			self.link_loss = torch.sum(self.link_loss) / float(num_entries)
-
-			#print('linkloss: ', self.link_loss)
-			return loss + self.link_loss
 		return loss
