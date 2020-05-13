@@ -22,7 +22,7 @@ def saliency(classifier_model, config, dataset_features, GNNgraph_list, current_
 	interpretability_config = config["interpretability_methods"]["saliency"]
 	dataset_features = dataset_features
 
-	# Perform deeplift on the classifier model
+	# Perform Saliency on the classifier model
 	sl = Saliency(classifier_model)
 
 	output_for_metrics_calculation = []

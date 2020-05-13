@@ -18,6 +18,7 @@ class DiffPool(nn.Module):
 		self.num_pooling = config["number_of_pooling"]
 		self.assign_ratio = config["assign_ratio"]
 		self.input_dim = dataset_features["feat_dim"] + dataset_features["attr_dim"] + dataset_features["edge_feat_dim"]
+		self.cur_assign_tensor_list = []
 
 		# Embedding Tensor
 		self.config["convolution_layers_size"] = \
@@ -33,7 +34,7 @@ class DiffPool(nn.Module):
 		else:
 			self.pred_input_dim = self.config["convolution_layers_size"][-1]
 
-		# DiffPool Layers
+		# DiffPool Layers (Assignment)
 		self.conv_modules = nn.ModuleList()
 		self.assign_modules = nn.ModuleList()
 		self.assign_pred_modules = nn.ModuleList()
@@ -88,6 +89,9 @@ class DiffPool(nn.Module):
 		adjacency_matrix = adjacency_matrix.to_dense()
 		self.input_adj = adjacency_matrix
 
+		# Store assignment matrix
+		self.cur_assign_tensor_list = []
+
 		node_feat_a = node_feat
 		out_all = []
 
@@ -98,8 +102,8 @@ class DiffPool(nn.Module):
 
 		for stack in range(self.num_pooling):
 			assign_tensor = self.assign_modules[stack](node_feat_a, adjacency_matrix, batch_graph)
-
-			self.assign_tensor = nn.Softmax(dim	=-1)(self.assign_pred_modules[stack](assign_tensor))
+			assign_tensor = nn.Softmax(dim	=-1)(self.assign_pred_modules[stack](assign_tensor))
+			self.cur_assign_tensor_list.append(assign_tensor)
 
 			# update pooled features and adj matrix
 			node_feat = torch.matmul(torch.transpose(assign_tensor, 0, 1), embedding_tensor)

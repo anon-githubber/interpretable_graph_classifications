@@ -258,9 +258,8 @@ if __name__ == '__main__':
 				qualitative_metrics_dict_by_method[method]["sparsity"].append(sparsity)
 
 	for method, qualitative_metrics_dict in qualitative_metrics_dict_by_method.items():
-		run_statistics_string += "Qualitative metrics for method %s - " % method
-
 		if config["interpretability_methods"][method]["enabled"] is True:
+			run_statistics_string += "Qualitative metrics for method %s - " % method
 			run_statistics_string += "Fidelity (avg): %s " % \
 									 str(round(sum(qualitative_metrics_dict["fidelity"]) /
 										 len(qualitative_metrics_dict["fidelity"]),5))
