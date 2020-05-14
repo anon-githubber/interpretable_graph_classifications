@@ -49,8 +49,8 @@ def saliency(classifier_model, config, dataset_features, GNNgraph_list, current_
 								   additional_forward_args=(n2n, subg, [GNNgraph]),
 								   target=label)
 
-			attribution_score = torch.sum(attribution, dim=1)
 			tmp_timing_list.append(perf_counter() - start_generation)
+			attribution_score = torch.sum(attribution, dim=1).tolist()
 			attribution_score = standardize_scores(attribution_score)
 
 			GNNgraph.label = original_label

@@ -5,7 +5,7 @@ import random
 from time import perf_counter
 from os import path
 from copy import deepcopy
-from captum.attr import LayerGradCam
+#from captum.attr import LayerGradCam
 from utilities.util import graph_to_tensor, standardize_scores
 
 def GradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
@@ -51,9 +51,8 @@ def GradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, curr
 								   additional_forward_args=(n2n, subg, [GNNgraph]),
 								   target=label)
 
-			attribution_score = torch.sum(attribution, dim=1)
-
 			tmp_timing_list.append(perf_counter() - start_generation)
+			attribution_score = torch.sum(attribution, dim=1).tolist()
 			attribution_score = standardize_scores(attribution_score)
 
 			GNNgraph.label = original_label
@@ -131,9 +130,9 @@ def GradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, curr
 				torch.zeros(assign_tensor.size()).scatter_(1, max_index, value=1), 0, 1)
 
 			attribution = torch.transpose(attribution, 0, 1) @ reverse_assign_tensor
-			attribution_score = torch.sum(attribution, dim=0)
-
 			tmp_timing_list.append(perf_counter() - start_generation)
+
+			attribution_score = torch.sum(attribution, dim=0).tolist()
 			attribution_score = normalize_scores(attribution_score, 1)
 
 			GNNgraph.label = original_label

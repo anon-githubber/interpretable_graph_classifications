@@ -128,7 +128,7 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_
 								   additional_forward_args=(n2n, subg, [GNNgraph]),
 								   target=label)
 			tmp_timing_list.append(perf_counter() - start_generation)
-			attribution_score = torch.sum(attribution, dim=1)
+			attribution_score = torch.sum(attribution, dim=1).tolist()
 			attribution_score = standardize_scores(attribution_score)
 
 			GNNgraph.label = original_label
@@ -195,8 +195,8 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_
 						baselines=node_feat_0,
 						target=graph_1.label)
 
-					attribution_score_0 = torch.sum(attribution_0, dim=1)
-					attribution_score_1 = torch.sum(attribution_1, dim=1)
+					attribution_score_0 = torch.sum(attribution_0, dim=1).tolist()
+					attribution_score_1 = torch.sum(attribution_1, dim=1).tolist()
 
 					attribution_score_0 = standardize_scores(attribution_score_0)
 					attribution_score_1 = standardize_scores(attribution_score_1)
