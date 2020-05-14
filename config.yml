@@ -46,7 +46,7 @@ interpretability_methods:
   GradCAM:
     enabled: True
     number_of_samples: 3
-    assign_attribution: soft
+    assign_attribution: hard
 metrics:
   fidelity:
     enabled: True

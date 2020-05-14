@@ -7,7 +7,7 @@ from time import perf_counter
 from os import path
 from copy import deepcopy
 from captum.attr import DeepLift
-from utilities.util import graph_to_tensor, normalize_scores
+from utilities.util import graph_to_tensor, standardize_scores
 
 def get_isomorphic_pairs(dataset_name, graph_list, k_fold, current_fold=None, max_pairs=5):
 	'''
@@ -129,7 +129,7 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_
 								   target=label)
 			tmp_timing_list.append(perf_counter() - start_generation)
 			attribution_score = torch.sum(attribution, dim=1)
-			attribution_score = normalize_scores(attribution_score, -1, 1)
+			attribution_score = standardize_scores(attribution_score)
 
 			GNNgraph.label = original_label
 
@@ -198,8 +198,8 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_
 					attribution_score_0 = torch.sum(attribution_0, dim=1)
 					attribution_score_1 = torch.sum(attribution_1, dim=1)
 
-					attribution_score_0 = normalize_scores(attribution_score_0, -1, 1)
-					attribution_score_1 = normalize_scores(attribution_score_1, -1, 1)
+					attribution_score_0 = standardize_scores(attribution_score_0)
+					attribution_score_1 = standardize_scores(attribution_score_1)
 
 					output_for_generating_saliency_map["deeplift_isomorphic_class_0"].append(
 						(graph_0, attribution_score_0))

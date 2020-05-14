@@ -6,7 +6,7 @@ from time import perf_counter
 from os import path
 from copy import deepcopy
 from captum.attr import Saliency
-from utilities.util import graph_to_tensor, normalize_scores
+from utilities.util import graph_to_tensor, standardize_scores
 
 def saliency(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
 	'''
@@ -48,9 +48,11 @@ def saliency(classifier_model, config, dataset_features, GNNgraph_list, current_
 			attribution = sl.attribute(node_feat,
 								   additional_forward_args=(n2n, subg, [GNNgraph]),
 								   target=label)
+
+			print(attribution)
 			attribution_score = torch.sum(attribution, dim=1)
 			tmp_timing_list.append(perf_counter() - start_generation)
-			attribution_score = normalize_scores(attribution_score, -1, 1)
+			attribution_score = standardize_scores(attribution_score)
 
 			GNNgraph.label = original_label
 
