@@ -131,10 +131,10 @@ def output_subgraph_images(subgraph_info_list, dataset_features, method, print_r
         nodes = nxgraph.nodes()
         ec = nx.draw_networkx_edges(nxgraph, pos, alpha=0.2)
         nc = nx.draw_networkx_nodes(
-            nxgraph, pos, nodelist=nodes, with_labels=False, node_size=200, cmap=plt.cm.coolwarm)
+            nxgraph, pos, nodelist=nodes, with_labels=False, node_size=200)
 
         nt = nx.draw_networkx_labels(
-            nxgraph, pos, node_labels, font_size=12)
+            nxgraph, pos, node_labels, font_size=15)
 
         class_0_freq = "Class 0 frequency: %d" % class_0_frequency
         class_1_freq = "Class 1 frequency: %d" % class_1_frequency
@@ -164,14 +164,18 @@ def output_subgraph_images(subgraph_info_list, dataset_features, method, print_r
         plt.savefig(image_output_path)
         plt.clf()
 
-def output_subgraph_list_to_images(subgraph_list, dataset_features, method, label, node_labels_dict, print_rank=True, output_path="results/subgraph_analysis"):
+
+def output_subgraph_list_to_images(subgraph_list, dataset_features, method, label, node_labels_dict, has_frequency=False, print_rank=True, output_path="results/subgraph_analysis_large"):
     '''
-    :param subgraph_info: information of subgraph frequencies in the following form
-                                                                      [(subgraph,  class_0_frequency, class_1_frequency)]. Input should be sorted by the actual class frequency.
+    :param subgraph_list: a list of GNNGraph
     :param output_path: the path to output the image files
     '''
     for idx, subgraph in enumerate(subgraph_list):
-        nxgraph = subgraph.to_nxgraph()
+
+        if has_frequency:
+            nxgraph, class_0_frequency, class_1_frequency = subgraph
+        else:
+            nxgraph = subgraph.to_nxgraph()
 
         # Restore node and graph labels to the same as dataset
         inverse_graph_label_dict = {v: k for k,
@@ -183,7 +187,6 @@ def output_subgraph_list_to_images(subgraph_list, dataset_features, method, labe
         if dataset_features["have_node_labels"] is True:
             node_labels = {x[0]: node_labels_dict.get(inverse_node_label_dict[x[1]])
                            for x in nxgraph.nodes("label")}
-
         else:
             node_labels = {x[0]: " " for x in nxgraph.nodes("label")}
 
@@ -193,18 +196,21 @@ def output_subgraph_list_to_images(subgraph_list, dataset_features, method, labe
         nodes = nxgraph.nodes()
         ec = nx.draw_networkx_edges(nxgraph, pos, alpha=0.2)
         nc = nx.draw_networkx_nodes(
-            nxgraph, pos, nodelist=nodes, with_labels=False, node_size=200, cmap=plt.cm.coolwarm)
+            nxgraph, pos, nodelist=nodes, with_labels=False, node_size=300, node_color='white', edgecolors='black')
 
         nt = nx.draw_networkx_labels(
             nxgraph, pos, node_labels, font_size=12)
 
         if print_rank:
-            title = "Frequent subgraph, Label:%s \n" % (
+            title = "Frequent subgraph, Label:%s \n Rank: %d" % (
                 label, idx + 1)
         else:
-            title = "Frequent subgraph, Label:%s \n" % (
+            title = "Frequent subgraph, Label:%s" % (
                 label)
-        plt.title(title, fontdict={'fontsize': 8, 'fontweight': 'medium'})
+
+        if has_frequency:
+            title += "\n Class 0 freq: %d \n Class 1 freq: %d" % (class_0_frequency, class_1_frequency)
+        plt.title(title, fontdict={'fontsize': 12, 'fontweight': 'medium', 'verticalalignment':'top'}, x=0.8, y=0.2)
         plt.axis('off')
 
         # Output image to file
