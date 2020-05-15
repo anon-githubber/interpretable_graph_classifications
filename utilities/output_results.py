@@ -40,7 +40,7 @@ def output_to_images(output, dataset_features, custom_label_mapping=None, output
             # Obtain and normalise attribution score
             attribution_scores_list = []
             for score in attribution_scores:
-                attribution_scores_list.append(score.item())
+                attribution_scores_list.append(score)
 
             max_abs_value = max(map(abs, attribution_scores_list))
 

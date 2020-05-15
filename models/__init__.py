@@ -4,6 +4,7 @@ import glob
 # Import new models here
 from .DGCNN import DGCNN
 from .DiffPool import DiffPool
+from .DiffPoolD import DiffPoolD
 from .GCN import GCN
 from .GCND import GCND
 from .DNN import DNN

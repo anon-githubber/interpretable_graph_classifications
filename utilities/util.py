@@ -161,14 +161,44 @@ def hamming(s1, s2):
 	return sum(c1 != c2 for c1, c2 in zip(s1, s2))
 
 
-def normalize_scores(scores, lower, upper):
-    minimum = min(scores)
-    maximum = max(scores)
-    scores = [lower + (score - minimum) * (upper - lower) /
+def normalize_scores(scores, max_normalized_value):
+	# Remember the signs
+	signs = [x>= 0 for x in scores]
+
+	# Normalise based on absolute value
+	scores = [abs(score) for score in scores]
+
+	minimum = min(scores)
+	maximum = max(scores)
+
+	scores = [(score - minimum) * max_normalized_value /
               (maximum - minimum) for score in scores]
-    return scores
+
+	# Reapply the signs
+	for i in range(len(scores)):
+		if signs[i] is False:
+			scores[i] *= -1
+
+	return scores
+
+def standardize_scores(scores):
+	# Remember the signs
+	signs = [x>= 0 for x in scores]
+
+	# Standardize based on absolute value
+	scores = [abs(score) for score in scores]
+	maximum = max(scores)
+
+	scores = [score/maximum for score in scores]
+
+	# Reapply the signs
+	for i in range(len(scores)):
+		if signs[i] is False:
+			scores[i] *= -1
+
+	return scores
 
 def get_node_labels_dict(dataset):
-    with open('data/%s/label_map.json' % dataset) as json_file:
-        labels_dict = json.load(json_file)
-        return labels_dict
+	with open('data/%s/label_map.json' % dataset) as json_file:
+		labels_dict = json.load(json_file)
+		return labels_dict

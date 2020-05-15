@@ -6,7 +6,7 @@ from time import perf_counter
 from os import path
 from copy import deepcopy
 from captum.attr import Saliency
-from utilities.util import graph_to_tensor, normalize_scores
+from utilities.util import graph_to_tensor, standardize_scores
 
 def saliency(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
 	'''
@@ -22,7 +22,7 @@ def saliency(classifier_model, config, dataset_features, GNNgraph_list, current_
 	interpretability_config = config["interpretability_methods"]["saliency"]
 	dataset_features = dataset_features
 
-	# Perform deeplift on the classifier model
+	# Perform Saliency on the classifier model
 	sl = Saliency(classifier_model)
 
 	output_for_metrics_calculation = []
@@ -48,9 +48,10 @@ def saliency(classifier_model, config, dataset_features, GNNgraph_list, current_
 			attribution = sl.attribute(node_feat,
 								   additional_forward_args=(n2n, subg, [GNNgraph]),
 								   target=label)
-			attribution_score = torch.sum(attribution, dim=1)
+
 			tmp_timing_list.append(perf_counter() - start_generation)
-			attribution_score = normalize_scores(attribution_score, -1, 1)
+			attribution_score = torch.sum(attribution, dim=1).tolist()
+			attribution_score = standardize_scores(attribution_score)
 
 			GNNgraph.label = original_label
 

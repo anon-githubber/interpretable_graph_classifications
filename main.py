@@ -68,7 +68,7 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 		prob = F.softmax(logits, dim=1)
 
 		# Calculate accuracy and loss
-		loss = F.nll_loss(logits, labels)
+		loss = classifier.loss(logits, labels)
 		pred = logits.data.max(1, keepdim=True)[1]
 		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() / float(labels.size()[0])
 		all_scores.append(prob.cpu().detach())  # for classification
@@ -80,7 +80,6 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 			loss.backward()
 			temp_timing_dict["backward"].append(time.perf_counter() - start_backward)
 			optimizer.step()
-
 
 		loss = loss.data.cpu().detach().numpy()
 		pbar.set_description('loss: %0.5f acc: %0.5f' % (loss, acc) )
@@ -259,9 +258,8 @@ if __name__ == '__main__':
 				qualitative_metrics_dict_by_method[method]["sparsity"].append(sparsity)
 
 	for method, qualitative_metrics_dict in qualitative_metrics_dict_by_method.items():
-		run_statistics_string += "Qualitative metrics for method %s - " % method
-
 		if config["interpretability_methods"][method]["enabled"] is True:
+			run_statistics_string += "Qualitative metrics for method %s - " % method
 			run_statistics_string += "Fidelity (avg): %s " % \
 									 str(round(sum(qualitative_metrics_dict["fidelity"]) /
 										 len(qualitative_metrics_dict["fidelity"]),5))
