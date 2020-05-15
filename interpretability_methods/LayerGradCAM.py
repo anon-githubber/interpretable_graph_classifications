@@ -8,7 +8,7 @@ from copy import deepcopy
 from captum.attr import LayerGradCam
 from utilities.util import graph_to_tensor, standardize_scores
 
-def GradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
+def LayerGradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
 	'''
 		Attribute to input layer using soft assign
 		:param classifier_model: trained classifier model
@@ -20,7 +20,7 @@ def GradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, curr
 	'''
 	# Initialise settings
 	config = config
-	interpretability_config = config["interpretability_methods"]["GradCAM"]
+	interpretability_config = config["interpretability_methods"]["LayerGradCAM"]
 	dataset_features = dataset_features
 
 	# Perform grad cam on the classifier model and on a specific layer
@@ -67,20 +67,20 @@ def GradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, curr
 		# Randomly sample from existing list:
 		graph_idxes = list(range(len(output_for_metrics_calculation)))
 		random.shuffle(graph_idxes)
-		output_for_generating_saliency_map.update({"gradcam_%s" % str(label): []
+		output_for_generating_saliency_map.update({"layergradcam_soft_%s" % str(label): []
 												   for _, label in dataset_features["label_dict"].items()})
 
 		# Begin appending found samples
 		for index in graph_idxes:
 			tmp_label = output_for_metrics_calculation[index]['graph'].label
-			if len(output_for_generating_saliency_map["gradcam_%s" % str(tmp_label)]) < \
+			if len(output_for_generating_saliency_map["layergradcam_soft_%s" % str(tmp_label)]) < \
 				interpretability_config["number_of_samples"]:
-				output_for_generating_saliency_map["gradcam_%s" % str(tmp_label)].append(
+				output_for_generating_saliency_map["layergradcam_soft_%s" % str(tmp_label)].append(
 					(output_for_metrics_calculation[index]['graph'], output_for_metrics_calculation[index][tmp_label]))
 
 	return output_for_metrics_calculation, output_for_generating_saliency_map, execution_time
 
-def GradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
+def LayerGradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
 	'''
 		Attribute to input layer using hard
 		:param classifier_model: trained classifier model
@@ -92,12 +92,12 @@ def GradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, curr
 	'''
 	# Initialise settings
 	config = config
-	interpretability_config = config["interpretability_methods"]["GradCAM"]
+	interpretability_config = config["interpretability_methods"]["LayerGradCAM"]
 	dataset_features = dataset_features
 
 	# Perform grad cam on the classifier model and on the first diffpool layer
 	if classifier_model.conv_modules is None or len(classifier_model.conv_modules) == 0:
-		print("GradCAM.py: Unable to perform hard-assign in models besides DiffPool")
+		print("LayerGradCAM.py: Unable to perform hard-assign in models besides DiffPool")
 		exit()
 
 	gc = LayerGradCam(classifier_model, classifier_model.conv_modules[0])
@@ -125,7 +125,7 @@ def GradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, curr
 
 			attribution = gc.attribute(node_feat,
 									   additional_forward_args=(n2n, subg, [GNNgraph]),
-									   target=label)
+									   target=label, relu_attributions =True)
 
 			# Attribute to the input layer using hard-assign
 			assign_tensor = classifier_model.cur_assign_tensor_list[0]
@@ -151,21 +151,21 @@ def GradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, curr
 		# Randomly sample from existing list:
 		graph_idxes = list(range(len(output_for_metrics_calculation)))
 		random.shuffle(graph_idxes)
-		output_for_generating_saliency_map.update({"gradcam_%s" % str(label): []
+		output_for_generating_saliency_map.update({"layergradcam_hard_%s" % str(label): []
 												   for _, label in dataset_features["label_dict"].items()})
 
 		# Begin appending found samples
 		for index in graph_idxes:
 			tmp_label = output_for_metrics_calculation[index]['graph'].label
-			if len(output_for_generating_saliency_map["gradcam_%s" % str(tmp_label)]) < \
+			if len(output_for_generating_saliency_map["layergradcam_hard_%s" % str(tmp_label)]) < \
 					interpretability_config["number_of_samples"]:
-				output_for_generating_saliency_map["gradcam_%s" % str(tmp_label)].append(
+				output_for_generating_saliency_map["layergradcam_hard_%s" % str(tmp_label)].append(
 					(output_for_metrics_calculation[index]['graph'], output_for_metrics_calculation[index][tmp_label]))
 
 	return output_for_metrics_calculation, output_for_generating_saliency_map, execution_time
 
 
-def GradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
+def LayerGradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
 	'''
 		Attribute to input layer using soft assign
 		:param classifier_model: trained classifier model
@@ -176,9 +176,9 @@ def GradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_f
 		:param cuda: whether to use GPU to perform conversion to tensor
 	'''
 
-	interpretability_config = config["interpretability_methods"]["GradCAM"]
+	interpretability_config = config["interpretability_methods"]["LayerGradCAM"]
 
 	if interpretability_config["assign_attribution"] == "hard":
-		return GradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, current_fold, cuda)
+		return LayerGradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, current_fold, cuda)
 	else:
-		return GradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, current_fold, cuda)
+		return LayerGradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, current_fold, cuda)
