@@ -189,6 +189,9 @@ def standardize_scores(scores):
 	scores = [abs(score) for score in scores]
 	maximum = max(scores)
 
+	if maximum == 0:
+		return scores
+
 	scores = [score/maximum for score in scores]
 
 	# Reapply the signs

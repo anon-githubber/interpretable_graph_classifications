@@ -47,11 +47,12 @@ def output_to_images(output, dataset_features, custom_label_mapping=None, output
             # Restore node and graph labels to the same as dataset
             inverse_graph_label_dict = {
                 v: k for k, v in dataset_features["label_dict"].items()}
-            inverse_node_label_dict = {
-                v: k for k, v in dataset_features["node_dict"].items()}
 
             # Obtain original node labels if mapping is available, else leave blank for all nodes
             if dataset_features["have_node_labels"] is True:
+                inverse_node_label_dict = {
+                    v: k for k, v in dataset_features["node_dict"].items()}
+
                 node_labels = {x[0]: inverse_node_label_dict[x[1]]
                                for x in nxgraph.nodes("label")}
 

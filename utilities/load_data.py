@@ -137,8 +137,8 @@ def unserialize_pickle(dataset_name):
 				node_mapping_list.append(nxgraph.nodes[node]['label'])
 
 		node_label_set = set(node_mapping_list)
-		j = 0
 
+		j = 0
 		for node_label in sorted(node_label_set):
 			node_labels_mapping_dict[str(node_label)] = j
 			j += 1

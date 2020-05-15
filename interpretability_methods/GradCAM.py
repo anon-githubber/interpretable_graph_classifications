@@ -5,7 +5,7 @@ import random
 from time import perf_counter
 from os import path
 from copy import deepcopy
-#from captum.attr import LayerGradCam
+from captum.attr import LayerGradCam
 from utilities.util import graph_to_tensor, standardize_scores
 
 def GradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
@@ -49,7 +49,7 @@ def GradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list, curr
 
 			attribution = gc.attribute(node_feat,
 								   additional_forward_args=(n2n, subg, [GNNgraph]),
-								   target=label)
+								   target=label, relu_attributions =True)
 
 			tmp_timing_list.append(perf_counter() - start_generation)
 			attribution_score = torch.sum(attribution, dim=1).tolist()
@@ -96,6 +96,10 @@ def GradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, curr
 	dataset_features = dataset_features
 
 	# Perform grad cam on the classifier model and on the first diffpool layer
+	if classifier_model.conv_modules is None or len(classifier_model.conv_modules) == 0:
+		print("GradCAM.py: Unable to perform hard-assign in models besides DiffPool")
+		exit()
+
 	gc = LayerGradCam(classifier_model, classifier_model.conv_modules[0])
 
 	output_for_metrics_calculation = []
@@ -133,7 +137,7 @@ def GradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list, curr
 			tmp_timing_list.append(perf_counter() - start_generation)
 
 			attribution_score = torch.sum(attribution, dim=0).tolist()
-			attribution_score = normalize_scores(attribution_score, 1)
+			attribution_score = standardize_scores(attribution_score)
 
 			GNNgraph.label = original_label
 
