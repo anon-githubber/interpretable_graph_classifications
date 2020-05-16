@@ -275,25 +275,32 @@ if __name__ == '__main__':
 					subgraphs[label] = new_list
 					print('After removing isomorphic subgraphs, class %s left with %s graphs' % (label, len(new_list)))
 
-				# Calculate the frequencies in sample graphs
-				graph_samples = new_sample if len(new_sample) < 400 else random.sample(new_sample, 400)
-				subgraphs_info = {0: [], 1: []}
-				for label, subgraph_list in subgraphs.items():
-					print('Counting frequencies for %s subgraph class %s' %
-						  (method, label))
-					for subgraph in subgraph_list:
-						class_0_count = 0
-						class_1_count = 0
-						for graph in graph_samples:
-							GM = isomorphism.GraphMatcher(
-								graph, subgraph)
-							if GM.subgraph_is_isomorphic():
-								if graph.graph['label'] == 0:
-									class_0_count += 1
-								elif graph.graph['label'] == 1:
-									class_1_count += 1
-						subgraphs_info[label].append(
-							(subgraph, class_0_count, class_1_count))
+				fname = 'data/%s/subgraph_frequencies.pickle' % cmd_args.data
+				try:
+					f = open(fname, 'rb')
+					subgraphs_info = pickle.load(f)
+				except OSError:
+					with(open(fname, 'wb')) as out_file:
+						# Calculate the frequencies in sample graphs
+						graph_samples = new_sample if len(new_sample) < 400 else random.sample(new_sample, 400)
+						subgraphs_info = {0: [], 1: []}
+						for label, subgraph_list in subgraphs.items():
+							print('Counting frequencies for %s subgraph class %s' %
+								(method, label))
+							for subgraph in subgraph_list:
+								class_0_count = 0
+								class_1_count = 0
+								for graph in graph_samples:
+									GM = isomorphism.GraphMatcher(
+										graph, subgraph)
+									if GM.subgraph_is_isomorphic():
+										if graph.graph['label'] == 0:
+											class_0_count += 1
+										elif graph.graph['label'] == 1:
+											class_1_count += 1
+								subgraphs_info[label].append(
+									(subgraph, class_0_count, class_1_count))
+						pickle.dump(subgraphs_info, out_file)
 
 				# Filter by min sup and sort by frequencies
 				for label, subgraphs_list in subgraphs_info.items():
