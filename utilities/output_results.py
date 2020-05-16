@@ -231,7 +231,7 @@ def output_subgraph_list_to_images(subgraph_list, dataset_features, method, labe
 		plt.clf()
 
 
-def output_nx_subgraph_list_to_images(subgraph_list, dataset_features, method, label, node_labels_dict, has_frequency=False, print_rank=True, output_path="results/subgraph_analysis_large"):
+def output_nx_subgraph_list_to_images(subgraph_list, dataset_features, method, label, node_labels_dict, has_frequency=False, print_rank=True, output_path="results/subgraph_analysis_new"):
 	'''
 	:param subgraph_list: a list of nxgraph
 	:param output_path: the path to output the image files
@@ -259,12 +259,12 @@ def output_nx_subgraph_list_to_images(subgraph_list, dataset_features, method, l
 		plt.subplot(grid[:-1, 0:])
 		pos = nx.kamada_kawai_layout(nxgraph)
 		nodes = nxgraph.nodes()
-		ec = nx.draw_networkx_edges(nxgraph, pos, alpha=0.2)
+		ec = nx.draw_networkx_edges(nxgraph, pos, width=2)
 		nc = nx.draw_networkx_nodes(
-			nxgraph, pos, nodelist=nodes, with_labels=False, node_size=300, node_color='white', edgecolors='black')
+			nxgraph, pos, nodelist=nodes, with_labels=False, node_size=300, node_color='white', edgecolors='black', linewidths=2)
 
 		nt = nx.draw_networkx_labels(
-			nxgraph, pos, node_labels, font_size=12)
+			nxgraph, pos, node_labels, font_size=12, font_weight='bold')
 
 		if print_rank:
 			title = "Frequent subgraph, Label:%s \n Rank: %d" % (
@@ -276,7 +276,7 @@ def output_nx_subgraph_list_to_images(subgraph_list, dataset_features, method, l
 		if has_frequency:
 			title += "\n Class 0 freq: %d \n Class 1 freq: %d" % (class_0_frequency, class_1_frequency)
 		plt.subplot(grid[-1, 1:])
-		plt.title(title, fontdict={'fontsize': 12, 'fontweight': 'medium', 'verticalalignment':'top'}, x=0.8, y=0.2)
+		plt.title(title, fontdict={'fontsize': 12, 'fontweight': 'bold', 'verticalalignment':'top'}, x=0.8, y=0.2)
 		plt.axis('off')
 
 		# Output image to file
