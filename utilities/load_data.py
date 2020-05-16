@@ -5,6 +5,13 @@ from sklearn.model_selection import StratifiedKFold
 
 from utilities.GNNGraph import GNNGraph
 
+def unserialize_pickle_file_to_nx(path):
+	# Unserialize the pickled file
+	with open(path, 'rb') as pickled_file:
+		nxgraph_list = pickle.load(pickled_file)
+		pickled_file.close()
+		return nxgraph_list
+
 def unserialize_pickle_file(path):
 	# Unserialize the pickled file
 	with open(path, 'rb') as pickled_file:
@@ -93,7 +100,7 @@ def unserialize_pickle_file(path):
 		graph_list.append(GNNGraph(graph_id, nxgraph, graph_label, node_labels, node_features))
 		graph_id += 1
 
-	return graph_list
+	return graph_list, node_labels_mapping_dict
 
 
 def unserialize_pickle(dataset_name):
