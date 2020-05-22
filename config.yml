@@ -24,8 +24,8 @@ GNN_models:
   DiffPool:
     convolution_layers_size : 64-64-64
     pred_hidden_layers: 50-50-50
-    assign_ratio: 0.25
-    number_of_pooling: 1
+    assign_ratio: 0.5
+    number_of_pooling: 3
     concat_tensors: False
   DiffPoolD:
     convolution_layers_size : 64-64-64
@@ -43,9 +43,10 @@ interpretability_methods:
   saliency:
     enabled: False
     number_of_samples: 3
-  GradCAM:
+  LayerGradCAM:
     enabled: True
     number_of_samples: 3
+    layer: 0
     assign_attribution: hard
 metrics:
   fidelity:

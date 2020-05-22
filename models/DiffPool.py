@@ -84,7 +84,7 @@ class DiffPool(nn.Module):
 				if m.bias is not None:
 					m.bias.data = init.constant_(m.bias.data, 0.0)
 
-	def forward(self, node_feat, adjacency_matrix, subg_size, batch_graph):
+	def forward(self, node_feat, adjacency_matrix, subg, batch_graph):
 		graph_sizes = [batch_graph[i].number_of_nodes for i in range(len(batch_graph))]
 		adjacency_matrix = adjacency_matrix.to_dense()
 		self.input_adj = adjacency_matrix
@@ -102,7 +102,7 @@ class DiffPool(nn.Module):
 
 		for stack in range(self.num_pooling):
 			assign_tensor = self.assign_modules[stack](node_feat_a, adjacency_matrix, batch_graph)
-			assign_tensor = nn.Softmax(dim	=-1)(self.assign_pred_modules[stack](assign_tensor))
+			assign_tensor = nn.Softmax(dim=-1)(self.assign_pred_modules[stack](assign_tensor))
 			self.cur_assign_tensor_list.append(assign_tensor)
 
 			# update pooled features and adj matrix

@@ -24,7 +24,11 @@ def LayerGradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list,
 	dataset_features = dataset_features
 
 	# Perform grad cam on the classifier model and on a specific layer
-	gc = LayerGradCam(classifier_model, classifier_model.graph_convolution)
+	layer_idx = interpretability_config["layer"]
+	if layer_idx == 0:
+		gc = LayerGradCam(classifier_model, classifier_model.graph_convolution)
+	else:
+		gc = LayerGradCam(classifier_model, classifier_model.conv_modules[layer_idx-1])
 
 	output_for_metrics_calculation = []
 	output_for_generating_saliency_map = {}
@@ -48,8 +52,8 @@ def LayerGradCAM_soft(classifier_model, config, dataset_features, GNNgraph_list,
 			start_generation = perf_counter()
 
 			attribution = gc.attribute(node_feat,
-								   additional_forward_args=(n2n, subg, [GNNgraph]),
-								   target=label, relu_attributions =True)
+									   additional_forward_args=(n2n, subg, [GNNgraph]),
+									   target=label, relu_attributions = True)
 
 			tmp_timing_list.append(perf_counter() - start_generation)
 			attribution_score = torch.sum(attribution, dim=1).tolist()
@@ -100,7 +104,12 @@ def LayerGradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list,
 		print("LayerGradCAM.py: Unable to perform hard-assign in models besides DiffPool")
 		exit()
 
-	gc = LayerGradCam(classifier_model, classifier_model.conv_modules[0])
+	layer_idx = interpretability_config["layer"]
+
+	if layer_idx == 0:
+		gc = LayerGradCam(classifier_model, classifier_model.graph_convolution)
+	else:
+		gc = LayerGradCam(classifier_model, classifier_model.conv_modules[layer_idx-1])
 
 	output_for_metrics_calculation = []
 	output_for_generating_saliency_map = {}
@@ -125,15 +134,22 @@ def LayerGradCAM_hard(classifier_model, config, dataset_features, GNNgraph_list,
 
 			attribution = gc.attribute(node_feat,
 									   additional_forward_args=(n2n, subg, [GNNgraph]),
-									   target=label, relu_attributions =True)
+									   target=label, relu_attributions = True)
 
 			# Attribute to the input layer using hard-assign
-			assign_tensor = classifier_model.cur_assign_tensor_list[0]
-			max_index = torch.argmax(assign_tensor, dim=1, keepdim=True)
-			reverse_assign_tensor = torch.transpose(
-				torch.zeros(assign_tensor.size()).scatter_(1, max_index, value=1), 0, 1)
+			reverse_assign_tensor_list = []
+			for i in range(1, layer_idx + 1):
+				assign_tensor = classifier_model.cur_assign_tensor_list[i-1]
+				max_index = torch.argmax(assign_tensor, dim=1, keepdim=True)
+				reverse_assign_tensor = torch.transpose(
+					torch.zeros(assign_tensor.size()).scatter_(1, max_index, value=1), 0, 1)
+				reverse_assign_tensor_list.append(reverse_assign_tensor)
 
-			attribution = torch.transpose(attribution, 0, 1) @ reverse_assign_tensor
+			attribution = torch.transpose(attribution, 0, 1)
+
+			for reverse_tensor in reversed(reverse_assign_tensor_list):
+				attribution = attribution @ reverse_tensor
+
 			tmp_timing_list.append(perf_counter() - start_generation)
 
 			attribution_score = torch.sum(attribution, dim=0).tolist()
