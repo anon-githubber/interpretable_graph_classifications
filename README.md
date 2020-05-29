@@ -1,14 +1,100 @@
-# Towards Interpretable Graph Classification
-## Getting Started
-To obtain heatmaps:
-```
-CUDA_VISIBLE_DEVICES=${GPU} python3 main.py cuda=0 -gm=DGCNN -data=MUTAG
-```
+### Architecture
 
-## Subgraph analysis:
+Fig. 1. Architecture of our framework
+
+The architecture of our system is given in Fig. 1. We employ PyTorch v1.5 deep learning library [1] to
+build GCNN models. The NetworkX library [2] is used to load and transform graphs as Python lists. We
+modify Captum interpretability framework [3], originally developed for standard neural networks, to fit
+with GCNNs, and integrate it with PyPlot API for visualisation. We perform experiments on a single
+machine with 16GB, 3GHz Intel i5-7400 processor. Our GPU platform is GeForce GTX 1070 (8GB VRAM)
+with CUDA 10.1.
+
+### GCNN architectures and hyperparameters selection.
+We perform 5-fold cross-validation. The learning rates and the number of epochs are selected from
+{0.01, 0.001, 0.0001, 0.00001} and {50, 100, 150, 200}, respectively, via the ADAM optimizer. The
+dropout rate is set as 0.5. More details are given in Table 1.
+
+[COMMENT: Add a table here with Model-specific run parameters and general parameters from excel
+sheet (as Table-1)]
+
+We follow the same GCNN architectures (e.g., number of different layers and their sizes) as in the
+original papers, since they consistently perform well in our experiments. In particular, we use the
+GCNN+GAP (as well as GCNN_D) architecture as in [4]: three graph convolutional layers of size 128, 256,
+and 512, respectively, followed by a GAP layer, and a softmax classifier.
+
+Following [5], our DGCNN architecture has four graph convolution layers with 32, 32, 32, 1 output
+channels, respectively. We set the k of SortPooling such that 60% graphs have nodes more than k. The
+remaining layers consist of two 1-D convolutional layers and one dense layer. The first 1-D convolutional
+layer has 16 output channels followed by a MaxPooling layer with filter size 2 and step size 2. The
+second 1-D convolutional layer has 32 output channels, filter size 5 and step size 1. The dense layer has
+128 hidden units followed by a softmax layer as the output layer.
+
+For both DIFFPOOL [6] and DIFFPOOL_D, one DIFFPOOL layer is used for smaller datasets, whereas two
+DIFFPOOL layers are employed over the larger callgraph. In each DIFFPOOL layer, the number of clusters
+is set as 25% of the number of nodes before applying the DIFFPOOL. Every DIFFPOOL layer consists of
+three GCNNs (each of size 64) for embedding generation and another three GCNNs (each of size 64) for
+computing probabilistic assignments. The final embedding vector generated from the last DIFFPOOL
+layer is used as input to three fully-connected layers (each having 50 hidden units), followed by a
+softmax classifier.
+
+Finally, we design a significant subgraph mining based graph classification model: Significant subgraph
+features are identified via GraphSig [7], with following parameter values: minFreq 0.1% (the default
+value used in [7]), while max-Pvalue is varied from 0.1-0.2 such that total number of significant subgraph
+features found is between 100-200 per dataset. We observe that using more than 200 subgraph
+features per dataset does not improve the classification accuracy, while it significantly increases the
+running time. Next, each input graph is represented as a binary vector, based on the presence/ absence
+of these significant subgraph features. The vectors are passed through a deep neural network (DNN)
+consisting of three dense layers, each having 128 hidden units, and followed by a softmax layer for
+classification. We refer to this architecture as GraphSig+DNN. We notice that GraphSig identifies
+significant subgraphs when each node has a single binary feature; it is non-trivial to extend GraphSig for
+nodes having multiple non-binary features. Thus, we cannot run GraphSig+DNN over callgraph.
+
+### Datasets
+We use five real-world graph datasets from two different categories. The first four belong to
+bioinformatics benchmarks: MUTAG [8] is a dataset of mutagenic aromatic and heteroaromatic nitro
+compounds classified according to their mutagenic effects on a bacterium. Tox21 AR [9] contains
+qualitative toxicity measurements of compounds. PTC FR [10] is a dataset of chemical compounds
+classified according to their carcinogenicity on female rats. These three datasets are obtained from:
+https://ls11-www.cs.tu-dortmund.de/staff/morris/graphkerneldatasets. NCI-H23 is downloaded from:
+https://pubchem.ncbi.nlm.nih.gov/, and contains anti-cancer screens for cell lung cancer over small
+molecules. For experiments on NCI-H23, we randomly sample 500 active compounds and 2000 inactive
+compounds [11].
+
+Our last dataset is a callgraph dataset (https://github.com/quarkslab/dataset-call-graph-blogpostmaterial),
+consisting of 1361 portable executable, 546 of them are sane files and 815 are malicious ones.
+Callgraphs are extracted in a static way from these executables with the help of radare2. Each graph is
+much larger in this dataset. For every node, which represents a function, we assign the most frequent
+opcodes (and their counts) as its features.
+Node features are binary except for callgraph. In callgraph a node (i.e., a function) can have multiple
+(about 4) features (i.e., frequent opcodes), and we store in the feature matrix the count of these
+features (opcodes) within a node (function).
+
+
+### References
 ```
-python3 subgraph_analysis.py cuda=0 -gm=DGCNN -data=MUTAG
+[1] A. Paszke, S. Gross, F. Massa, A. Lerer, J. Bradbury, G. Chanan, T. Killeen, Z. Lin, N. Gimelshein, L.
+Antiga, A. Desmaison, A. K{\"{o}}pf, E. Yang, Z. DeVito, M. Raison, A. Tejani, S. Chilamkurthy, B. Steiner, L.
+Fang, J. Bai, and S. Chintala, ``PyTorch: An Imperative Style, High-Performance Deep Learning Library,''
+NeurIPS, 2019.
+[2] A. A. Hagberg, D. A. Schult, and P. J. Swart, ``Exploring Network Structure, Dynamics, and Function
+using NetworkX'', SciPy, 2008.
+[3] N. Kokhlikyan, V. Miglani, M. Martin, E. Wang, J. Reynolds, A. Melnikov, N. Lunova, and O. Reblitz-
+Richardson, ``PyTorch Captum,'', https://github.com/pytorch/captum , 2019.
+[4] P. E. Pope, S. Kolouri, M. Rostami, C. E. Martin, and H. Hoffmann, “Explainability Methods for Graph
+Convolutional Neural Networks”, CVPR, 2018.
+[5] M. Zhang, Z. Cui, M. Neumann, and Y. Chen, “An End-to-End Deep Learning Architecture for Graph
+Classification”, AAAI, 2018.
+[6] Z. Ying, J. You, C. Morris, X. Ren, W. L. Hamilton, and J. Leskovec, “Hierarchical Graph Representation
+Learning with Differentiable Pooling”, NeurIPS, 2018.
+[7] S. Ranu and A. K. Singh, “GraphSig: A Scalable Approach to Mining Significant Subgraphs in Large
+Graph Databases”, ICDE, 2009.
+[8] A. K. Debnath, d. C. R. Lopez, G. Debnath, A. J. Shusterman, and C. Hansch, “Structure-activity
+Relationship of Mutagenic Aromatic and Heteroaromatic Nitro Compounds. Correlation with Molecular
+Orbital Energies and Hydrophobicity,” J. Medicinal Chemistry, vol. 34, 1991.
+[9] Z. Wu, B. Ramsundar, E. N. Feinberg, J. Gomes, C. Geniesse, A. S. Pappu, K. Leswing, and V. S. Pande,
+“MoleculeNet: A Benchmark for Molecular Machine Learning”, CoRR, vol. abs/1703.00564, 2017.
+[10] H. Toivonen, A. Srinivasan, R. D. King, S. Kramer, and C. Helma, “Statistical Evaluation of the
+Predictive Toxicology Challenge 2000-2001”, Bioinform., vol. 19, no. 10, 2003.
+[11] X. Yan, H. Cheng, J. Han, and P. S. Yu, “Mining Significant Graph Patterns by Leap Search”, SIGMOD,
+2008.
 ```
-Optional params:  
--`graphsig`: set to 1 to run graphsig subgraph analysis. Default is 0.  
--`subgraph_explainability`: set to 1 to run explainability method based subgraph analysis. Default is 0.
