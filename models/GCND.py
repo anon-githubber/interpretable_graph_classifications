@@ -15,8 +15,11 @@ class GCND(nn.Module):
 		self.dataset_features = dataset_features
 
 		# Initialise Graph Convolution Layers
-		self.config["convolution_layers_size"] = \
-			list(map(int, self.config["convolution_layers_size"].split('-')))
+		if '-' in str(self.config["convolution_layers_size"]):
+			self.config["convolution_layers_size"] = \
+				list(map(int, self.config["convolution_layers_size"].split('-')))
+		else:
+			self.config["convolution_layers_size"] = [int(self.config["convolution_layers_size"])]
 
 		self.graph_convolution = GraphConvolutionLayers_DGCNN(
 			latent_dim=self.config["convolution_layers_size"],

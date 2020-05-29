@@ -10,13 +10,15 @@ import matplotlib.pyplot as plt
 import matplotlib
 
 
-def output_to_images(output, dataset_features, custom_label_mapping=None, output_directory="results/image"):
+def output_to_images(output, dataset_features, custom_model_options=None,
+                     custom_dataset_options=None, output_directory="results/image"):
     '''
-
     :param output: the output data structure obtained from a interpretability method. It follows the following format:
                     {output_group_1: [(nxgraph_1, attribution_score_list_1) ... (nxgraph_N, attribution_score_list_N)],
                     output_group_2: ...}
     :param dataset_features: a dictionary of useful information about the dataset, obtained from load_data.py
+    :param custom_dataset_options: a dictionary of custom options to apply custom visualisation unique to dataset
+    :param custom_model_options: a dictionary of custom options to apply custom visualisation unique to model
     :param output_path: the path to output the image files
     '''
 
@@ -42,13 +44,11 @@ def output_to_images(output, dataset_features, custom_label_mapping=None, output
             for score in attribution_scores:
                 attribution_scores_list.append(score)
 
-            max_abs_value = max(map(abs, attribution_scores_list))
-
             # Restore node and graph labels to the same as dataset
             inverse_graph_label_dict = {
                 v: k for k, v in dataset_features["label_dict"].items()}
 
-            # Obtain original node labels if mapping is available, else leave blank for all nodes
+            # Obtain original node labels, else leave blank for all nodes if there are no node labels
             if dataset_features["have_node_labels"] is True:
                 inverse_node_label_dict = {
                     v: k for k, v in dataset_features["node_dict"].items()}
@@ -63,16 +63,65 @@ def output_to_images(output, dataset_features, custom_label_mapping=None, output
             graph_label = inverse_graph_label_dict[GNNgraph.label]
 
             # Draw the network graph
+            # Initialise size of plt
+            plt.figure(figsize=(20, 10))
+
             # Get position of nodes using kamada_kawai layout
             pos = nx.kamada_kawai_layout(nxgraph)
             nodes = nxgraph.nodes()
-            ec = nx.draw_networkx_edges(nxgraph, pos, alpha=0.2)
-            nc = nx.draw_networkx_nodes(nxgraph, pos, nodelist=nodes,
-                                        node_color=attribution_scores_list, vmin=-max_abs_value, vmax=max_abs_value,
-                                        with_labels=False, node_size=200, cmap=plt.cm.coolwarm)
+            ec = nx.draw_networkx_edges(nxgraph, pos, alpha=1, width=5)
 
+            # Determine colourmap, depending on whether it's 0 to 1 or -1 to 1
+            if min(attribution_scores_list) >= 0:
+                colormap = plt.cm.OrRd
+                min_score = 0.0
+                max_score = 1
+            else:
+                colormap = plt.cm.coolwarm
+                min_score = -1
+                max_score = 1
+
+            # Set outline of node to be black
+            edgecolors = "#000000"
+
+            # Determine node size and label size depending on the number of nodes in the graph
+            node_size = max(1500 - (len(attribution_scores_list) * 10), 300)
+            font_size = max(42 - len(attribution_scores_list), 12)
+
+            # Handle custom visualisation options
+
+            if custom_dataset_options is not None:
+                # Apply custom label mapping if available
+                if custom_dataset_options["custom_mapping"] is not None:
+                    node_labels = {k: custom_dataset_options["custom_mapping"][str(v)] for k, v in node_labels.items()}
+
+            if custom_model_options is not None:
+                # Determine if nodes should show clusters
+                if custom_model_options["cluster_nodes"] is not None and custom_model_options["cluster_nodes"] is True:
+                    # Obtain cluster mapping
+                    score_set = list(set(attribution_scores_list))
+                    cluster_mapping_by_score = {}
+                    node_outline_colormap = plt.cm.hsv
+                    for index in range(len(score_set)):
+                        cluster_mapping_by_score[score_set[index]] = node_outline_colormap(index/len(score_set))
+                    # Apply cluster mapping
+                    edgecolors = []
+                    for score in attribution_scores_list:
+                        edgecolors.append(cluster_mapping_by_score[score])
+
+            # Draw the nodes
+            nc = nx.draw_networkx_nodes(nxgraph, pos, nodelist=nodes,
+                                        node_color=attribution_scores_list,
+                                        vmin=min_score,
+                                        vmax=max_score,
+                                        node_size=node_size,
+                                        linewidths=5,
+                                        edgecolors=edgecolors,
+                                        with_labels=False, cmap=colormap)
+
+            # Draw Labels
             nt = nx.draw_networkx_labels(
-                nxgraph, pos, node_labels, font_size=12)
+                nxgraph, pos, node_labels, font_size=font_size)
 
             plt.title("%s ID:%s Label:%s Index:%s" % (
                 attribution_score_group, GNNgraph.graph_id, graph_label, str(i)))

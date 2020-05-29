@@ -21,8 +21,11 @@ class DiffPoolD(nn.Module):
 		self.input_dim = dataset_features["feat_dim"] + dataset_features["attr_dim"] + dataset_features["edge_feat_dim"]
 
 		# Embedding Tensor
-		self.config["convolution_layers_size"] = \
-			list(map(int, self.config["convolution_layers_size"].split('-')))
+		if '-' in str(self.config["convolution_layers_size"]):
+			self.config["convolution_layers_size"] = \
+				list(map(int, self.config["convolution_layers_size"].split('-')))
+		else:
+			self.config["convolution_layers_size"] = [int(self.config["convolution_layers_size"])]
 
 		self.graph_convolution = GraphConvolutionLayers_DGCNN_Dense(
 			latent_dim=self.config["convolution_layers_size"],

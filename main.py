@@ -276,7 +276,11 @@ if __name__ == '__main__':
 	run_statistics_string += "\n"
 
 	# Create heatmap from the model with the best ROC_AUC output =======================================================
-	output_count = output_to_images(best_saliency_outputs_dict, dataset_features, output_directory="results/image")
+	output_count = output_to_images(best_saliency_outputs_dict,
+									dataset_features,
+									config["custom_visualisation_options"]["GNN_models"][cmd_args.gm],
+									config["custom_visualisation_options"]["dataset"][cmd_args.data],
+									output_directory="results/image")
 	print("Generated %s saliency map images." % output_count)
 
 	# Print run statistics =============================================================================================

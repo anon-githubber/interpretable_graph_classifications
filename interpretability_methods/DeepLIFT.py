@@ -140,20 +140,37 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_
 
 	# Obtain attribution score for use in generating saliency map for comparison with zero tensors
 	if interpretability_config["compare_with_zero_tensor"] is True:
-		# Randomly sample from existing list:
-		graph_idxes = list(range(len(output_for_metrics_calculation)))
-		random.shuffle(graph_idxes)
-		output_for_generating_saliency_map.update({"deeplift_zero_tensor_class_%s" % str(label): []
-												   for _, label in dataset_features["label_dict"].items()})
+		if interpretability_config["sample_ids"] is not None:
+			if ',' in str(interpretability_config["sample_ids"]):
+				sample_graph_id_list = list(map(int, interpretability_config["sample_ids"].split(',')))
+			else:
+				sample_graph_id_list = [int(interpretability_config["sample_ids"])]
 
-		# Begin appending found samples
-		for index in graph_idxes:
-			tmp_label = output_for_metrics_calculation[index]['graph'].label
-			if len(output_for_generating_saliency_map["deeplift_zero_tensor_class_%s" % str(tmp_label)]) < \
-				interpretability_config["number_of_zero_tensor_samples"]:
-				output_for_generating_saliency_map["deeplift_zero_tensor_class_%s" % str(tmp_label)].append(
-					(output_for_metrics_calculation[index]['graph'], output_for_metrics_calculation[index][tmp_label]))
+			output_for_generating_saliency_map.update({"layergradcam_%s_%s" % (str(assign_type), str(label)): []
+													   for _, label in dataset_features["label_dict"].items()})
 
+			for index in range(len(output_for_metrics_calculation)):
+				tmp_output = output_for_metrics_calculation[index]
+				tmp_label = tmp_output['graph'].label
+				if tmp_output['graph'].graph_id in sample_graph_id_list:
+					element_name = "layergradcam_%s_%s" % (str(assign_type), str(tmp_label))
+					output_for_generating_saliency_map[element_name].append(
+						(tmp_output['graph'], tmp_output[tmp_label]))
+
+		elif interpretability_config["number_of_samples"] > 0:
+			# Randomly sample from existing list:
+			graph_idxes = list(range(len(output_for_metrics_calculation)))
+			random.shuffle(graph_idxes)
+			output_for_generating_saliency_map.update({"deeplift_zero_tensor_class_%s" % str(label): []
+													   for _, label in dataset_features["label_dict"].items()})
+
+			# Begin appending found samples
+			for index in graph_idxes:
+				tmp_label = output_for_metrics_calculation[index]['graph'].label
+				element_name = "deeplift_zero_tensor_class_%s" % str(tmp_label)
+				if len(output_for_generating_saliency_map[element_name]) < interpretability_config["number_of_zero_tensor_samples"]:
+					output_for_generating_saliency_map[element_name].append(
+						(output_for_metrics_calculation[index]['graph'], output_for_metrics_calculation[index][tmp_label]))
 
 	# Obtain attribution score for use in generating saliency map for comparison with isomers
 	if interpretability_config["compare_with_isomorphic_samples"] is True:
