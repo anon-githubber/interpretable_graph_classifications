@@ -75,35 +75,6 @@ def callgraph_to_networkx(goodware_file_directory, malware_file_directory):
 
 	return iterate_graphs(list_of_goodware_graphs, 0) + iterate_graphs(list_of_malware_graphs, 1)
 
-
-def combine_PTC(path_to_data_folder):
-	PTC_MM_list = dortmund_to_networkx(path_to_data_folder + "/PTC_MM", "PTC_MM")
-	PTC_FM_list = dortmund_to_networkx(path_to_data_folder + "/PTC_FM", "PTC_FM")
-	PTC_MR_list = dortmund_to_networkx(path_to_data_folder + "/PTC_MR", "PTC_MR")
-	PTC_FR_list = dortmund_to_networkx(path_to_data_folder + "/PTC_FR", "PTC_FR")
-
-	for nxgraph in PTC_FM_list:
-		if nxgraph.graph['label'] == 1:
-			nxgraph.graph['label'] = 2
-
-	for nxgraph in PTC_MR_list:
-		if nxgraph.graph['label'] == 1:
-			nxgraph.graph['label'] = 3
-
-	for nxgraph in PTC_FR_list:
-		if nxgraph.graph['label'] == 1:
-			nxgraph.graph['label'] = 4
-
-	combined_nxgraph_list = PTC_MM_list + PTC_FM_list + PTC_MR_list + PTC_FR_list
-
-	# Remove those with label of 0
-	nxgraph_list_without_label_zero = []
-	for nxgraph in combined_nxgraph_list:
-		if nxgraph.graph["label"] != 0:
-			nxgraph_list_without_label_zero.append(nxgraph)
-
-	return nxgraph_list_without_label_zero
-
 def subset_dataset(nxgraph_list, distribution_list):
 	distribution_list = distribution_list.split(",")
 

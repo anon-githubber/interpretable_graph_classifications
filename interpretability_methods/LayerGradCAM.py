@@ -5,7 +5,7 @@ import random
 from time import perf_counter
 from os import path
 from copy import deepcopy
-from captum.attr import LayerGradCam
+# from captum.attr import LayerGradCam
 from utilities.util import graph_to_tensor, standardize_scores
 
 def LayerGradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):

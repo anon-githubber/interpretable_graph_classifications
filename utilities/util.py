@@ -24,10 +24,10 @@ def graph_to_tensor(batch_graphs, node_feat_dim, edge_feat_dim, gpu):
 	:param gpu: boolean
 	:return node_feat: Sparse matrix of one-hot encoding of node features
 	:return n2n_sp: Sparse matrix containing edge pairs of the graph.
-					Indices consist of a tensor with two rows of node labels, where the first row refers to the
-					node that the edge is coming out of and the second row refers to the nodes that the edge is going into
-					Each column corresponds to an edge connecting two nodes.
-					Values refer to the edge weights for each edge
+	Indices consist of a tensor with two rows of node labels, where the first row refers to the
+	node that the edge is coming out of and the second row refers to the nodes that the edge is going into
+	Each column corresponds to an edge connecting two nodes.
+	Values refer to the edge weights for each edge
 	:return subg_sp: <Unsure> Number of nodes in the graph
 	:rtype node_feat: Tensor
 	:rtype n2n_sp: Tensor
@@ -151,6 +151,8 @@ def graph_to_tensor(batch_graphs, node_feat_dim, edge_feat_dim, gpu):
 		input_edge_linear = edge_feat
 		e2npool_input = gnn_spmm(e2n_sp, input_edge_linear)
 		node_feat = torch.cat([node_feat, e2npool_input], 1)
+
+	subg_sp = subg_sp.size()[0]
 
 	return node_feat, n2n_sp, subg_sp
 

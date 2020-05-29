@@ -122,7 +122,6 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_
 				[GNNgraph], dataset_features["feat_dim"],
 				dataset_features["edge_feat_dim"], cuda)
 
-			subg = subg.size()[0]
 			start_generation = perf_counter()
 			attribution = dl.attribute(node_feat,
 								   additional_forward_args=(n2n, subg, [GNNgraph]),
@@ -199,8 +198,6 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_
 					node_feat_1, _, _ = graph_to_tensor(
 						[graph_1], dataset_features["feat_dim"],
 						dataset_features["edge_feat_dim"], cuda)
-
-					subg = subg.size()[0]
 
 					attribution_0 = dl.attribute(node_feat_0,
 						additional_forward_args=(n2n, subg, [graph_0]),

@@ -44,8 +44,6 @@ def get_accuracy(trained_classifier_model, GNNgraph_list, dataset_features, cuda
             [GNNgraph], dataset_features["feat_dim"],
             dataset_features["edge_feat_dim"], cuda)
 
-		subg = subg.size()[0]
-
 		output = trained_classifier_model(node_feat, n2n, subg, [GNNgraph])
 		logits = F.log_softmax(output, dim=1)
 		pred = logits.data.max(1, keepdim=True)[1]
@@ -73,8 +71,6 @@ def get_roc_auc(trained_classifier_model, GNNgraph_list, dataset_features, cuda)
 		node_feat, n2n, subg = graph_to_tensor(
             [GNNgraph], dataset_features["feat_dim"],
             dataset_features["edge_feat_dim"], cuda)
-
-		subg = subg.size()[0]
 
 		output = trained_classifier_model(node_feat, n2n, subg, [GNNgraph])
 		logits = F.log_softmax(output, dim=1)
@@ -124,10 +120,6 @@ def get_fidelity(trained_classifier_model, metric_attribution_scores, dataset_fe
 	importance_range = [float(bound) for bound in importance_range]
 
 	GNNgraph_list = [group["graph"] for group in metric_attribution_scores]
-
-	# accuracy_prior_occlusion = get_accuracy(trained_classifier_model, GNNgraph_list, dataset_features, cuda)
-	# occluded_GNNgraph_list = occlude_graphs(metric_attribution_scores, dataset_features, importance_range)
-	# accuracy_after_occlusion = get_accuracy(trained_classifier_model, occluded_GNNgraph_list, dataset_features, cuda)
 
 	roc_auc_prior_occlusion = get_roc_auc(trained_classifier_model, GNNgraph_list, dataset_features, cuda)
 	occluded_GNNgraph_list = occlude_graphs(metric_attribution_scores, dataset_features, importance_range)

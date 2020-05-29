@@ -6,6 +6,10 @@ from sklearn.model_selection import StratifiedKFold
 from utilities.GNNGraph import GNNGraph
 
 def unserialize_pickle_file(path):
+	'''
+	:param path: filepath to the pickled dataset file
+	:return: a list of GNNgraphs extracted from dataset
+	'''
 	# Unserialize the pickled file
 	with open(path, 'rb') as pickled_file:
 		nxgraph_list = pickle.load(pickled_file)
@@ -290,8 +294,8 @@ def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dat
 			edge_count_list.append(len(graph.edge_pairs)/2)
 
 		# Build verbose message
-		dataset_features_string = "=====================================================\n"
-		dataset_features_string += "== General information== \n"
+		dataset_features_string = "==== Dataset Information ====\n"
+		dataset_features_string += "== General Information == \n"
 		dataset_features_string += "Number of graphs: " + str(len(graph_list)) + "\n"
 		dataset_features_string += "Number of classes: " + str(dataset_features['num_class']) + "\n"
 		dataset_features_string += "Class distribution: \n"
@@ -320,9 +324,8 @@ def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dat
 								   str(round(sum(unique_node_features_per_graph_count_list)/len(graph_list))) + "\n"
 
 			dataset_features_string += "Average number of distinct node features per node: " + \
-								   str(round(sum(unique_node_features_per_node_count_list)/len(unique_node_features_per_node_count_list))) + "\n"
-
-		dataset_features_string += "\n====================================================="
+								   str(round(sum(unique_node_features_per_node_count_list)/
+											 len(unique_node_features_per_node_count_list))) + "\n"
 
 		dataset_features["dataset_info"] = dataset_features_string
 		print(dataset_features_string)

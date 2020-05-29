@@ -14,8 +14,8 @@ def output_to_images(output, dataset_features, custom_model_options=None,
                      custom_dataset_options=None, output_directory="results/image"):
     '''
     :param output: the output data structure obtained from a interpretability method. It follows the following format:
-                    {output_group_1: [(nxgraph_1, attribution_score_list_1) ... (nxgraph_N, attribution_score_list_N)],
-                    output_group_2: ...}
+    {output_group_1: [(nxgraph_1, attribution_score_list_1) ... (nxgraph_N, attribution_score_list_N)],
+    output_group_2: ...}
     :param dataset_features: a dictionary of useful information about the dataset, obtained from load_data.py
     :param custom_dataset_options: a dictionary of custom options to apply custom visualisation unique to dataset
     :param custom_model_options: a dictionary of custom options to apply custom visualisation unique to model

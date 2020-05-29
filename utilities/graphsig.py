@@ -1,7 +1,6 @@
 from utilities.GNNGraph import GNNGraph
 import networkx as nx
 
-
 def convert_graphsig_to_gnn_graph(sample_path, node_feature_exist=False):
     graph_list = []
     with open(sample_path, 'r') as f:
