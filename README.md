@@ -1,6 +1,10 @@
 ### Architecture
 
-Fig. 1. Architecture of our framework
+<p align=center>
+  <img src="readme/architecture.png" width="50%" height="50%">
+  <br />
+  Fig. 1. Architecture of our framework
+</p>
 
 The architecture of our system is given in Fig. 1. We employ PyTorch v1.5 deep learning library [1] to
 build GCNN models. The NetworkX library [2] is used to load and transform graphs as Python lists. We
