@@ -164,17 +164,20 @@ if __name__ == '__main__':
 
 	# [2] Instantiate the classifier using config.yml =================================================================
 	# Display to user the current configuration used:
-	run_configuration_string = "==== Configuration Settings ===="
-	run_configuration_string += "== Run Settings =="
-	run_configuration_string += "Model: %s, Dataset: %s" % (
+	run_configuration_string = "==== Configuration Settings ====\n"
+	run_configuration_string += "== Run Settings ==\n"
+	run_configuration_string += "Model: %s, Dataset: %s\n" % (
 		config["run"]["model"], config["run"]["dataset"])
 
 	for option, value in config["run"].items():
-		run_configuration_string += "%s: %s" % (option, value)
+		run_configuration_string += "%s: %s\n" % (option, value)
 
-	run_configuration_string += "== Model Settings =="
+	run_configuration_string += "\n== Model Settings ==\n"
 	for option, value in config["GNN_models"][config["run"]["model"]].items():
-		run_configuration_string += "%s: %s" % (option, value)
+		run_configuration_string += "%s: %s\n" % (option, value)
+	run_configuration_string += "\n"
+
+	run_statistics_string += run_configuration_string
 
 	model_list = []
 	model_metrics_dict = {"accuracy": [], "roc_auc": [], "prc_auc": []}

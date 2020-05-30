@@ -326,6 +326,7 @@ def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dat
 			dataset_features_string += "Average number of distinct node features per node: " + \
 								   str(round(sum(unique_node_features_per_node_count_list)/
 											 len(unique_node_features_per_node_count_list))) + "\n"
+		dataset_features_string += "\n"
 
 		dataset_features["dataset_info"] = dataset_features_string
 		print(dataset_features_string)
