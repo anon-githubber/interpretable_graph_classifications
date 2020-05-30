@@ -156,7 +156,7 @@ def DeepLIFT(classifier_model, config, dataset_features, GNNgraph_list, current_
 					output_for_generating_saliency_map[element_name].append(
 						(tmp_output['graph'], tmp_output[tmp_label]))
 
-		elif interpretability_config["number_of_samples"] > 0:
+		elif interpretability_config["number_of_zero_tensor_samples"] > 0:
 			# Randomly sample from existing list:
 			graph_idxes = list(range(len(output_for_metrics_calculation)))
 			random.shuffle(graph_idxes)
