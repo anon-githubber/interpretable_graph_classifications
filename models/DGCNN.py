@@ -23,7 +23,8 @@ class DGCNN(nn.Module):
 		self.graph_convolution = GraphConvolutionLayers_DGCNN(
 			latent_dim=self.config["convolution_layers_size"],
 			input_dim=dataset_features["feat_dim"] + dataset_features["attr_dim"] + dataset_features["edge_feat_dim"],
-			concat_tensors=True)
+			concat_tensors=True,
+			dropout=self.config["convolution_dropout"])
 
 		# Initialise Sortpooling Layer
 		if 1 >= self.config["sortpooling_k"] > 0:
@@ -39,12 +40,12 @@ class DGCNN(nn.Module):
 		self.sort_pool = SortPooling(self.config["sortpooling_k"],
 									 sum(config["convolution_layers_size"]))
 
-		# Intialise MLP Classification Layers
+		# Initialise MLP Classification Layers
 		self.mlp = MLPClassifier(
 			output_dim=self.config["FP_len"],
 			hidden_size=self.config["n_hidden"],
 			num_class=self.dataset_features["num_class"],
-			dropout=self.config["dropout"],
+			dropout=self.config["pred_dropout"],
 			latent_dim=self.config["convolution_layers_size"],
 			k=self.config["sortpooling_k"])
 

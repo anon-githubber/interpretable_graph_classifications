@@ -172,7 +172,7 @@ if __name__ == '__main__':
 	for option, value in config["run"].items():
 		run_configuration_string += "%s: %s\n" % (option, value)
 
-	run_configuration_string += "\n== Model Settings ==\n"
+	run_configuration_string += "\n== Model Settings and results ==\n"
 	for option, value in config["GNN_models"][config["run"]["model"]].items():
 		run_configuration_string += "%s: %s\n" % (option, value)
 	run_configuration_string += "\n"
@@ -321,7 +321,7 @@ if __name__ == '__main__':
 							 round(sum(model_metrics_dict["roc_auc"])/len(model_metrics_dict["roc_auc"]),5)
 	run_statistics_string += "PRC_AUC (avg): %s " % \
 							 round(sum(model_metrics_dict["prc_auc"])/len(model_metrics_dict["prc_auc"]),5)
-	run_statistics_string += "\n"
+	run_statistics_string += "\n\n"
 
 	# [4] Begin applying interpretability methods =====================================================================
 	# Store the model that has the best ROC_AUC accuracy to
@@ -369,13 +369,19 @@ if __name__ == '__main__':
 				qualitative_metrics_dict_by_method[method]["contrastivity"].append(contrastivity)
 				qualitative_metrics_dict_by_method[method]["sparsity"].append(sparsity)
 
-	# Report qualitative metrics
+	# Report qualitative metrics and configuration used
+	run_statistics_string += ("== Interpretability methods settings and results ==\n")
 	for method, qualitative_metrics_dict in \
 			qualitative_metrics_dict_by_method.items():
 		if config["interpretability_methods"][method]["enabled"] is True:
+			# Report configuration settings used
 			run_statistics_string += \
-				"Qualitative metrics for method %s - " % \
+				"Qualitative metrics and settings for method %s:\n " % \
 				method
+			for option, value in config["interpretability_methods"][method].items():
+				run_statistics_string += "%s: %s\n" % (str(option), str(value))
+
+			# Report qualitative metrics
 			run_statistics_string += \
 				"Fidelity (avg): %s " % \
 				str(round(sum(qualitative_metrics_dict["fidelity"])/len(qualitative_metrics_dict["fidelity"]), 5))
@@ -391,7 +397,7 @@ if __name__ == '__main__':
 				str(round(sum(saliency_map_generation_time_dict[method])/
 					len(saliency_map_generation_time_dict[method])*1000, 5))
 
-	run_statistics_string += "\n"
+	run_statistics_string += "\n\n"
 
 	# [5] Create heatmap from the model with the best ROC_AUC output ==================================================
 	custom_model_visualisation_options = None

@@ -9,7 +9,6 @@ class DenseLayers(nn.Module):
 				 latent_dim=[50, 50, 50]):
 		super(DenseLayers, self).__init__()
 
-
 		if len(latent_dim) == 0:
 			self.prediction_model = nn.Linear(input_dim, output_dim)
 		else:

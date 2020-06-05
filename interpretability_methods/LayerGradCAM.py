@@ -5,7 +5,7 @@ import random
 from time import perf_counter
 from os import path
 from copy import deepcopy
-# from captum.attr import LayerGradCam
+from captum.attr import LayerGradCam
 from utilities.util import graph_to_tensor, standardize_scores
 
 def LayerGradCAM(classifier_model, config, dataset_features, GNNgraph_list, current_fold=None, cuda=0):
@@ -49,29 +49,31 @@ def LayerGradCAM(classifier_model, config, dataset_features, GNNgraph_list, curr
 				[GNNgraph], dataset_features["feat_dim"],
 				dataset_features["edge_feat_dim"], cuda)
 
-			subg = subg.size()[0]
 			start_generation = perf_counter()
 
 			attribution = gc.attribute(node_feat,
 									   additional_forward_args=(n2n, subg, [GNNgraph]),
 									   target=label, relu_attributions = True)
 
-			# Attribute to the input layer using hard-assign
-			if assign_type == "hard":
-				reverse_assign_tensor_list = []
-				for i in range(1, layer_idx + 1):
-					assign_tensor = classifier_model.cur_assign_tensor_list[i - 1]
-					max_index = torch.argmax(assign_tensor, dim=1, keepdim=True)
+			# Attribute to the input layer using the assign method specified
+			reverse_assign_tensor_list = []
+			for i in range(1, layer_idx + 1):
+				assign_tensor = classifier_model.cur_assign_tensor_list[i - 1]
+				max_index = torch.argmax(assign_tensor, dim=1, keepdim=True)
+				if assign_type == "hard":
 					reverse_assign_tensor = torch.transpose(
 						torch.zeros(assign_tensor.size()).scatter_(1, max_index, value=1), 0, 1)
-					reverse_assign_tensor_list.append(reverse_assign_tensor)
+				else:
+					reverse_assign_tensor = torch.transpose(assign_tensor, 0, 1)
 
-				attribution = torch.transpose(attribution, 0, 1)
+				reverse_assign_tensor_list.append(reverse_assign_tensor)
 
-				for reverse_tensor in reversed(reverse_assign_tensor_list):
-					attribution = attribution @ reverse_tensor
+			attribution = torch.transpose(attribution, 0, 1)
 
-				attribution = torch.transpose(attribution, 0, 1)
+			for reverse_tensor in reversed(reverse_assign_tensor_list):
+				attribution = attribution @ reverse_tensor
+
+			attribution = torch.transpose(attribution, 0, 1)
 			tmp_timing_list.append(perf_counter() - start_generation)
 
 			attribution_score = torch.sum(attribution, dim=1).tolist()

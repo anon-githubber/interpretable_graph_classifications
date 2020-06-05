@@ -20,9 +20,6 @@ struct cfg
             if (strcmp(argv[i], "-msg_average") == 0)
                 msg_average = atoi(argv[i + 1]);
         }
-        std::cerr << "====== begin of gnn configuration ======" << std::endl;
-        std::cerr << "| msg_average = " << msg_average << std::endl;
-        std::cerr << "======   end of gnn configuration ======" << std::endl;
     }
 };
 

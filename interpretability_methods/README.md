@@ -1,4 +1,6 @@
 To add a new interpretability method, your function must take in (following the same argument order):
+method(classifier_model, config, dataset_features, GNNgraph_list, current_fold, cuda=0)
+
 1. The trained classifier model (classifier)
 2. The whole parsed configuration dicionary (config)
 3. The dataset features dictionary obtained from load_data() (dataset_features)
@@ -23,6 +25,6 @@ attribution score for one graph.
 
 4. Add the function to the a python file of the same name as put it in this directory. Import the function in \_\_init__.py
 
-5. In config.yml, add the name of your function under "interpretability methods", and have atleast one configuration "enabled" with a value of boolean
+5. In config.yml, add the name of your function under "interpretability methods", and have atleast one configuration "enabled" with a value of boolean either True or False (case sensitive)
 
 See the implementation for DeepLIFT as example
