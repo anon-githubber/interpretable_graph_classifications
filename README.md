@@ -1,3 +1,29 @@
+## Running the Code
+### Requirements:
+This codebase requires running on Linux OS. For Windows users, consider the Windows Subsystem for Linux (https://docs.microsoft.com/en-us/windows/wsl/install-win10). Experiment was performed on Ubuntu 18.04, with CUDA version 10.1 and PyTorch version 1.5.
+
+### Setup
+1. Install Python 3, . Optionally, you can install CUDA for faster training times if you have own a Nvidia GPU
+   - (Optional) Install and create a virtual environment
+   - Install PyTorch version 1.5
+2. Install the requirements found in requirements.txt using `pip install -r requirements.txt`
+3. Run main.py using the following options:
+   - cuda=<0,1>: determine whether to use CUDA
+   - gm=<GCN,GCND,DGCNN,DiffPool,DiffPoolD>: determine which model to use
+   - data=<MUTAG,NCI-H23,TOX21_AR,PTC_FR,Callgraph>: determine which dataset to train on
+   - retrain=<0,1>: decide whether to retrain the model. Previously trained models are stored in tmp/saved_models.
+   
+For example: `python3 main.py cuda=1 -gm=DGCNN -data=PTC_FR -retrain=0` trains a DGCNN model using the PTC_FR dataset while using the GPU
+   
+### Known Issues
+Due to the limitations in specifications of Captum, we are unable to run DeepLIFT on version 0.2.0 as the changes from 0.1.0 to 0.2.0 did not consider our use case for graphs. Additionally, we required version 0.2.0 to run LayerGradCAM. Hence, we used version switching to run our experiments as and when the intepretability method is required. For LayerGradCAM, it is mostly used for images. 
+
+Hence, you have to edit the library in site-packages -> captum -> attr -> _core -> layer -> grad_cam.py line 210: change to dim=0.
+
+### Experiment Results
+You can view our findings when we have successfully publish our paper.
+
+## Description
 ### Architecture
 
 <p align=center>
@@ -18,13 +44,8 @@ We perform 5-fold cross-validation. The learning rates and the number of epochs 
 {0.01, 0.001, 0.0001, 0.00001} and {50, 100, 150, 200}, respectively, via the ADAM optimizer. The
 dropout rate is set as 0.5. More details are given in Table 1.
 
-[COMMENT: Add a table here with Model-specific run parameters and general parameters from excel
-sheet (as Table-1)]
-
 We follow the same GCNN architectures (e.g., number of different layers and their sizes) as in the
-original papers, since they consistently perform well in our experiments. In particular, we use the
-GCNN+GAP (as well as GCNN_D) architecture as in [4]: three graph convolutional layers of size 128, 256,
-and 512, respectively, followed by a GAP layer, and a softmax classifier.
+original papers, except for certain cases. In particular, we use the GCNN+GAP (as well as GCNN_D) architecture as in [4]: three graph convolutional layers of size 128, 256, and 512, respectively, followed by a GAP layer, and a softmax classifier.
 
 Following [5], our DGCNN architecture has four graph convolution layers with 32, 32, 32, 1 output
 channels, respectively. We set the k of SortPooling such that 60% graphs have nodes more than k. The
