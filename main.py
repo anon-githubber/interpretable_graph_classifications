@@ -397,6 +397,8 @@ if __name__ == '__main__':
 				str(round(sum(saliency_map_generation_time_dict[method])/
 					len(saliency_map_generation_time_dict[method])*1000, 5))
 
+			run_statistics_string += "\n"
+
 	run_statistics_string += "\n\n"
 
 	# [5] Create heatmap from the model with the best ROC_AUC output ==================================================

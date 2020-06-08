@@ -48,9 +48,9 @@ interpretability_methods:
     sample_ids:
   LayerGradCAM:
     enabled: True
-    number_of_samples: 50
-    sample_ids: 170,49,94,27
-    layer: 1
+    number_of_samples: 3
+    sample_ids:
+    layer: 0
     assign_attribution: hard
 metrics:
   fidelity:
