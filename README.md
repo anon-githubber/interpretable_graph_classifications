@@ -12,13 +12,15 @@ This codebase requires running on Linux OS. For Windows users, consider the Wind
    - gm=<GCN,GCND,DGCNN,DiffPool,DiffPoolD>: determine which model to use
    - data=<MUTAG,NCI-H23,TOX21_AR,PTC_FR,Callgraph>: determine which dataset to train on
    - retrain=<0,1>: decide whether to retrain the model. Previously trained models are stored in tmp/saved_models.
-   
-For example: `python3 main.py cuda=1 -gm=DGCNN -data=PTC_FR -retrain=0` trains a DGCNN model using the PTC_FR dataset while using the GPU
+   - For example: `python3 main.py cuda=1 -gm=DGCNN -data=PTC_FR -retrain=0` trains a DGCNN model using the PTC_FR dataset while using the GPU
+   - Additional run options can be found in config.yml
+
+4. Collect your results from the results subdirectory, where log contains the information that is shown at the end of the execution while images contains the saliency visualisations
    
 ### Known Issues
-Due to the limitations in specifications of Captum, we are unable to run DeepLIFT on version 0.2.0 as the changes from 0.1.0 to 0.2.0 did not consider our use case for graphs. Additionally, we required version 0.2.0 to run LayerGradCAM. Hence, we used version switching to run our experiments as and when the intepretability method is required. For LayerGradCAM, it is mostly used for images. 
+Due to the limitations in specifications of Captum, we are unable to run DeepLIFT on version 0.2.0 as the changes from 0.1.0 to 0.2.0 did not consider our use case for graphs. Additionally, we required version 0.2.0 to run LayerGradCAM. Hence, we used version switching to run our experiments as and when the intepretability method is required. For LayerGradCAM, it is mostly used for images. Hence, you have to edit the library in site-packages -> captum -> attr -> _core -> layer -> grad_cam.py line 210: change to dim=0.
 
-Hence, you have to edit the library in site-packages -> captum -> attr -> _core -> layer -> grad_cam.py line 210: change to dim=0.
+Currently, DiffPool (and its variant DiffPoolD) as well as the calculations of qualitative metrics do not support batch processing, this will be added in the future.
 
 ### Experiment Results
 You can view our findings when we have successfully publish our paper.
@@ -42,7 +44,92 @@ with CUDA 10.1.
 ### GCNN architectures and hyperparameters selection.
 We perform 5-fold cross-validation. The learning rates and the number of epochs are selected from
 {0.01, 0.001, 0.0001, 0.00001} and {50, 100, 150, 200}, respectively, via the ADAM optimizer. The
-dropout rate is set as 0.5. More details are given in Table 1.
+dropout rate is set as 0.5. More details are given below:
+
+#### General Run Parameters
+| Parameter | Value |
+| --- | --- |
+| Batch Size | 1 |
+| Seed | 1800 |
+| K-Folds | 5 |
+| CUDA enabled | Yes |
+
+#### Run Setup
+| Configuration | Value |
+| --- | --- |
+| Processor | Intel Core i5-7400 3.00 Hz (4 cores) |
+| RAM | 16GB |
+| GPU | GeForce GTX 1070 8GBVRAM |
+| Torch Version | 1.5 |
+| CUDA Version | 10.1 |
+
+#### Models Setup
+MUTAG
+| Configuration | GNN+GAP | GNN(D) | DGCNN | DiffPool | DiffPool(D) |
+| --- | --- | --- | --- | --- | --- |
+| Learning Rate | 0.001 | 0.0001 | 0.0001 | 0.0001 | 0.0001 |
+| Epochs | 50 | 50 | 50 | 50 | 50 |
+| SortPooling k |  |  | 0.6 |  |  |
+| Dropout in Convolution Layer | 0.5 | 0.5 | 0.5 |  |  |
+| Dropout in Prediction Layer |  |  | 0.5 |  |  |
+| Assign Ratio for DiffPool |  |  |  | 0.1 | 0.25 |
+| Number of Pooling Layers |  |  |  | 1 | 1 |
+| Convolution Layer Sizes | 128-256-512 | 128-256-512 | 128-128-128-1 | 64-64-64 | 64-64-64 |
+| Prediction Layer Sizes |  |  | 128 | 50-50-50 | 50-50-50 |
+
+NCI-H23
+| Configuration | GNN+GAP | GNN(D) | DGCNN | DiffPool | DiffPool(D) |
+| --- | --- | --- | --- | --- | --- |
+| Learning Rate | 0.001 | 0.0001 | 0.0001 | 0.0001 | 0.0001 |
+| Epochs | 50 | 50 | 50 | 50 | 50 |
+| SortPooling k |  |  | 0.6 |  |  |
+| Dropout in Convolution Layer | 0.5 | 0.5 |  |  |  |
+| Dropout in Prediction Layer |  |  | 0.5 |  |  |
+| Assign Ratio for DiffPool |  |  |  | 0.1 | 0.25 |
+| Number of Pooling Layers |  |  |  | 1 | 1 |
+| Convolution Layer Sizes | 128-256-512 | 128-256-512 | 32-32-32-1 | 64-64-64 | 64-64-64 |
+| Prediction Layer Sizes |  |  | 128 | 50-50-50 | 50-50-50 |
+
+
+TOX21_AR
+| Configuration | GNN+GAP | GNN(D) | DGCNN | DiffPool | DiffPool(D) |
+| --- | --- | --- | --- | --- | --- |
+| Learning Rate | 0.001 | 0.0001 | 0.0001 | 0.0001 | 0.0001 |
+| Epochs | 50 | 50 | 50 | 50 | 50 |
+| SortPooling k |  |  | 0.6 |  |  |
+| Dropout in Convolution Layer | 0.5 | 0.5 |  |  |  |
+| Dropout in Prediction Layer |  |  | 0.5 |  |  |
+| Assign Ratio for DiffPool |  |  |  | 0.1 | 0.25 |
+| Number of Pooling Layers |  |  |  | 1 | 1 |
+| Convolution Layer Sizes | 128-256-512 | 128-256-512 | 32-32-32-1 | 64-64-64 | 64-64-64 |
+| Prediction Layer Sizes |  |  | 128 | 50-50-50 | 50-50-50 |
+
+
+PTC_FR
+| Configuration | GNN+GAP | GNN(D) | DGCNN | DiffPool | DiffPool(D) |
+| --- | --- | --- | --- | --- | --- |
+| Learning Rate | 0.001 | 0.0001 | 0.0001 | 0.0001 | 0.0001 |
+| Epochs | 50 | 50 | 50 | 50 | 50 |
+| SortPooling k |  |  | 0.6 |  |  |
+| Dropout in Convolution Layer | 0.5 | 0.5 | 0.5 |  |  |
+| Dropout in Prediction Layer |  |  | 0.5 |  |  |
+| Assign Ratio for DiffPool |  |  |  | 0.1 | 0.25 |
+| Number of Pooling Layers |  |  |  | 1 | 1 |
+| Convolution Layer Sizes | 128-256-512 | 128-256-512 | 128-128-128-1 | 64-64-64 | 64-64-64 |
+| Prediction Layer Sizes |  |  | 128 | 50-50-50 | 50-50-50 |
+
+Callgraph
+| Configuration | GNN+GAP | GNN(D) | DGCNN | DiffPool | DiffPool(D) |
+| --- | --- | --- | --- | --- | --- |
+| Learning Rate | 0.001 | 0.0001 | 0.0001 | 0.0001 | 0.0001 |
+| Epochs | 50 | 50 | 50 | 50 | 50 |
+| SortPooling k |  |  | 0.6 |  |  |
+| Dropout in Convolution Layer | 0.5 | 0.5 | 0.5 |  |  |
+| Dropout in Prediction Layer |  |  | 0.5 |  |  |
+| Assign Ratio for DiffPool |  |  |  | 0.25 | 0.25 |
+| Number of Pooling Layers |  |  |  | 2 | 2 |
+| Convolution Layer Sizes | 128-256-512 | 128-256-512 | 32-32-32-1 | 64-64-64 | 64-64-64 |
+| Prediction Layer Sizes |  |  | 128 | 50-50-50 | 50-50-50 |
 
 We follow the same GCNN architectures (e.g., number of different layers and their sizes) as in the
 original papers, except for certain cases. In particular, we use the GCNN+GAP (as well as GCNN_D) architecture as in [4]: three graph convolutional layers of size 128, 256, and 512, respectively, followed by a GAP layer, and a softmax classifier.
