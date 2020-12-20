@@ -20,13 +20,16 @@ from copy import deepcopy
 
 # Import user-defined models and interpretability methods
 from models import *
-from interpretability_methods import *
+#from interpretability_methods import *
 
 # Import user-defined functions
 from utilities.load_data import load_model_data
 from utilities.util import graph_to_tensor
 from utilities.output_results import output_to_images
 from utilities.metrics import auc_scores, compute_metric
+
+# Check if gpu is available
+print('\n\ntorch.cuda.is_available(): ', torch.cuda.is_available(), '\n\n')
 
 # Define timer list to report running statistics
 timing_dict = {"forward": [], "backward": []}
@@ -75,17 +78,21 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 		for i in range(len(batch_graph)):
 			labels[i] = batch_graph[i].label
 
-		if cmd_args.cuda == 1:
+		if cmd_args.cuda == '1':
+			#print('** main.py line 82: label cuda')
 			labels = labels.cuda()
 
 		# Perform training
 		start_forward = time.perf_counter()
 		output = classifier(node_feat, n2n, subg, batch_graph)
+		#print('** main.py line 88: output.is_cuda: ', output.is_cuda)
 		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
 		logits = F.log_softmax(output, dim=1)
 		prob = F.softmax(logits, dim=1)
 
 		# Calculate accuracy and loss
+		#print('** main.py line 93: logits.is_cuda: ', logits.is_cuda)
+		#print('** main.py line 94: labels.is_cuda: ', labels.is_cuda)
 		loss = classifier.loss(logits, labels)
 		pred = logits.data.max(1, keepdim=True)[1]
 		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() /\
@@ -135,10 +142,11 @@ if __name__ == '__main__':
 	# Get run arguments
 	cmd_opt = argparse.ArgumentParser(
 		description='Argparser for graph classification')
-	cmd_opt.add_argument('-cuda', default='0', help='0-CPU, 1-GPU')
-	cmd_opt.add_argument('-gm', default='DGCNN', help='GNN model to use')
-	cmd_opt.add_argument('-data', default='TOX21', help='Dataset to use')
-	cmd_opt.add_argument('-retrain', default='0', help='Whether to re-train the classifier or use saved trained model')
+	cmd_opt.add_argument('-cuda', default='1', help='0-CPU, 1-GPU')
+	cmd_opt.add_argument('-gm', default='GCN', help='GNN model to use')
+	cmd_opt.add_argument('-data', default='MUTAG', help='Dataset to use')
+	# 0 -> Load classifier, 1 -> train from scratch
+	cmd_opt.add_argument('-retrain', default='1', help='Whether to re-train the classifier or use saved trained model')
 	cmd_args, _ = cmd_opt.parse_known_args()
 
 	# Get run configurations
@@ -248,6 +256,7 @@ if __name__ == '__main__':
 			exec (exec_string)
 
 			if cmd_args.cuda == '1':
+				#print('** main.py line 256: classifier_model cuda')
 				classifier_model = classifier_model.cuda()
 
 			# Define back propagation optimizer
@@ -322,7 +331,7 @@ if __name__ == '__main__':
 	run_statistics_string += "PRC_AUC (avg): %s " % \
 							 round(sum(model_metrics_dict["prc_auc"])/len(model_metrics_dict["prc_auc"]),5)
 	run_statistics_string += "\n\n"
-
+	'''
 	# [4] Begin applying interpretability methods =====================================================================
 	# Store the model that has the best ROC_AUC accuracy to
 	# be used for generating saliency visualisations
@@ -423,7 +432,7 @@ if __name__ == '__main__':
 									custom_dataset_visualisation_options,
 									output_directory="results/image")
 	print("Generated %s saliency map images." % output_count)
-
+	'''
 	# [6] Print and log run statistics ========================================
 	if len(timing_dict["forward"]) > 0:
 		run_statistics_string += \

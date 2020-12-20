@@ -47,6 +47,7 @@ class GraphConvolutionLayers_GCN(nn.Module):
 		if self.concat_tensors:
 			return torch.cat(cat_output_matrix, 1)
 		else:
+			#print('** layers.py line 50: output_matrix.is_cuda: ', output_matrix.is_cuda)
 			return output_matrix
 
 # Torch nn module: Graph Convolution Layers using DGCNN implementation

@@ -36,7 +36,7 @@ class GCN(nn.Module):
 		graph_sizes = [batch_graph[i].number_of_nodes for i in range(len(batch_graph))]
 		output_matrix = self.graph_convolution(node_feat, adjacency_matrix, batch_graph)
 
-		batch_logits = torch.zeros(len(graph_sizes), self.dataset_features["num_class"])
+		batch_logits = torch.zeros(len(graph_sizes), self.dataset_features["num_class"]).cuda()
 
 		accum_count=0
 		for i in range(subg):
@@ -44,6 +44,9 @@ class GCN(nn.Module):
 			average_pooling = to_pool.mean(0, keepdim=True)
 			pool_out = average_pooling.mm(self.weight)
 			batch_logits[i] = pool_out
+
+		#print('** GCN.py line 48: pool_out.is_cuda: ', pool_out.is_cuda)
+		#print('** GCN.py line 49: batch_logits.is_cuda: ', batch_logits.is_cuda)
 
 		return batch_logits
 

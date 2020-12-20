@@ -1,0 +1,59 @@
+# conda environments:
+#
+base                     /apps/anaconda3
+DGCNN                    /home/FYP/heyu0012/.conda/envs/DGCNN
+GCNN_GAP              *  /home/FYP/heyu0012/.conda/envs/GCNN_GAP
+graphgen                 /home/FYP/heyu0012/.conda/envs/graphgen
+pytorch                  /home/FYP/heyu0012/.conda/envs/pytorch
+
+PATH:  /home/FYP/heyu0012/.conda/envs/GCNN_GAP/bin:/cm/local/apps/environment-modules/4.4.0/bin:/cm/local/apps/environment-modules/4.4.0/bin:/apps/anaconda3/bin:/cm/local/apps/environment-modules/4.4.0/bin:/apps/anaconda3/condabin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/FYP/heyu0012/bin:/cm/shared/apps/slurm/19.05.5/bin:/sbin:/usr/sbin:/cm/local/apps/environment-modules/4.4.0/bin:/home/FYP/heyu0012/local/bin:/home/FYP/heyu0012/bin:/home/FYP/heyu0012/bin:/cm/shared/apps/slurm/19.05.5/bin:/home/FYP/heyu0012/local/bin:/home/FYP/heyu0012/bin:/usr/local/cuda/bin:/home/FYP/heyu0012/bin:/cm/shared/apps/slurm/19.05.5/bin:/usr/local/cuda/bin:/apps/openmpi-3.1.2/bin:/apps/go/bin:/usr/local/R2019b/bin
+====== begin of gnn configuration ======
+| msg_average = 0
+======   end of gnn configuration ======
+  0%|          | 0/150 [00:00<?, ?batch/s]
+
+torch.cuda.is_available():  True 
+
+
+load_data.py load_model_data(): Unserialising pickled dataset into Graph objects
+==== Dataset Information ====
+== General Information == 
+Number of graphs: 188
+Number of classes: 2
+Class distribution: 
+0:63 1:125 
+
+== Node information== 
+Average number of nodes: 18
+Average number of edges (undirected): 20
+Max number of nodes: 28
+Number of distinct node labels: 7
+Average number of distinct node labels: 3
+Node labels distribution: 
+0:2395 1:345 2:593 3:12 4:1 5:23 6:2 
+
+Training a new model: GCN
+Training model with dataset, testing using fold 0
+** main.py line 256: classifier_model cuda
+** util.py line 65: edge_feat_flag:  False
+** util.py line 140: node feature cuda
+** util.py line 147: n2n_sp e2n_sp subg_sp cuda
+** main.py line 82: label cuda
+** layer.py line 43: output_tensor.is_cuda:  True
+** layer.py line 43: output_tensor.is_cuda:  True
+** layer.py line 43: output_tensor.is_cuda:  True
+** layers.py line 50: output_matrix.is_cuda:  True
+** main.py line 88: output.is_cuda:  False
+** main.py line 93: logits.is_cuda:  False
+** main.py line 94: labels.is_cuda:  True
+Traceback (most recent call last):
+  File "main.py", line 279, in <module>
+    optimizer=optimizer)
+  File "main.py", line 96, in loop_dataset
+    loss = classifier.loss(logits, labels)
+  File "/home/FYP/heyu0012/projects/interpretable_graph_classifications/models/GCN.py", line 55, in loss
+    return F.nll_loss(logits, labels)
+  File "/home/FYP/heyu0012/.conda/envs/GCNN_GAP/lib/python3.6/site-packages/torch/nn/functional.py", line 2115, in nll_loss
+    ret = torch._C._nn.nll_loss(input, target, weight, _Reduction.get_enum(reduction), ignore_index)
+RuntimeError: Expected object of device type cuda but got device type cpu for argument #1 'self' in call to _thnn_nll_loss_forward
+  0%|          | 0/150 [00:00<?, ?batch/s]

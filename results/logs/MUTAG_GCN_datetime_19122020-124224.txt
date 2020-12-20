@@ -1,0 +1,35 @@
+==== Dataset Information ====
+== General Information == 
+Number of graphs: 188
+Number of classes: 2
+Class distribution: 
+0:63 1:125 
+
+== Node information== 
+Average number of nodes: 18
+Average number of edges (undirected): 20
+Max number of nodes: 28
+Number of distinct node labels: 7
+Average number of distinct node labels: 3
+Node labels distribution: 
+0:2395 1:345 2:593 3:12 4:1 5:23 6:2 
+
+Run statistics: 
+==== Configuration Settings ====
+== Run Settings ==
+Model: GCN, Dataset: MUTAG
+num_epochs: 50
+learning_rate: 0.0001
+seed: 1800
+k_fold: 5
+model: GCN
+dataset: MUTAG
+
+== Model Settings and results ==
+convolution_layers_size: 128-256-512
+dropout: 0.5
+
+Accuracy (avg): 0.71792 ROC_AUC (avg): 0.77882 PRC_AUC (avg): 0.87787 
+
+Average forward propagation time taken(ms): 1.9883861431715462
+Average backward propagation time taken(ms): 1.3004780086018055

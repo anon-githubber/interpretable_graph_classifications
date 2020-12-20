@@ -62,6 +62,7 @@ def graph_to_tensor(batch_graphs, node_feat_dim, edge_feat_dim, gpu):
 	else:
 		edge_feat_flag = False
 		concat_edge_feat = None
+	#print('** util.py line 65: edge_feat_flag: ', edge_feat_flag)
 
 	# Extraction loop: for each graph in batch, dissect graph elements and append to their respective lists
 	for i in range(len(batch_graphs)):
@@ -136,12 +137,15 @@ def graph_to_tensor(batch_graphs, node_feat_dim, edge_feat_dim, gpu):
 	n2n_sp, e2n_sp, subg_sp = GNNLIB.PrepareSparseMatrices(batch_graphs)
 
 	# If mode is GPU, enable cuda
-	if torch.cuda.is_available() and gpu == 1:
+	if torch.cuda.is_available() and gpu == '1':
+		#print('** util.py line 140: node feature cuda')
 		node_feat = node_feat.cuda()
 		if edge_feat_flag == True and isinstance(node_feat, torch.cuda.FloatTensor):
+			#print('** util.py line 143: edge feature cuda')
 			edge_feat = edge_feat.cuda()
 
 	if torch.cuda.is_available() and isinstance(node_feat, torch.cuda.FloatTensor):
+		#print('** util.py line 147: n2n_sp e2n_sp subg_sp cuda')
 		n2n_sp = n2n_sp.cuda()
 		e2n_sp = e2n_sp.cuda()
 		subg_sp = subg_sp.cuda()

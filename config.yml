@@ -47,7 +47,7 @@ interpretability_methods:
     number_of_samples: 3
     sample_ids:
   LayerGradCAM:
-    enabled: True
+    enabled: False 
     number_of_samples: 3
     sample_ids:
     layer: 0

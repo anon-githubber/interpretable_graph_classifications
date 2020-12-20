@@ -29,8 +29,9 @@ class GraphConvolutionLayer_GCN(nn.Module):
 	def forward(self, input_tensor, adjacency_matrix, node_degree):
 		# Graph Convolution Layer Forward
 		dense_adjacency_matrix = adjacency_matrix.to_dense() # A
-		dense_adjacency_matrix = dense_adjacency_matrix + torch.eye(list(dense_adjacency_matrix.size())[0]) # A~ = (A + I)
-		normalised_degree = torch.rsqrt(node_degree) # D~^-(1/2)
+		# #print('** layer.py line 32: dense_adjacency_matrix.is_cuda: ', dense_adjacency_matrix.is_cuda)
+		dense_adjacency_matrix = dense_adjacency_matrix + torch.eye(list(dense_adjacency_matrix.size())[0]).cuda() # A~ = (A + I)
+		normalised_degree = torch.rsqrt(node_degree).cuda() # D~^-(1/2)
 		adjacency_matrix = normalised_degree.mul(dense_adjacency_matrix).mul(normalised_degree) # A~' D~^(-1/2) A~ D~^(-1/2)
 		adjacency_matrix = adjacency_matrix.to_sparse()
 
@@ -39,6 +40,7 @@ class GraphConvolutionLayer_GCN(nn.Module):
 		output_tensor = torch.relu(node_linear)
 		if self.dropout_layer is not None:
 			output_tensor = self.dropout_layer(output_tensor)
+		#print('** layer.py line 43: output_tensor.is_cuda: ', output_tensor.is_cuda)
 		return output_tensor
 	
 class GraphConvolutionLayer_DGCNN(nn.Module):
