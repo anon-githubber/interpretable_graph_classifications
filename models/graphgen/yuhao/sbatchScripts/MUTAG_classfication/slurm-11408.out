@@ -1,0 +1,395 @@
+# conda environments:
+#
+base                     /apps/anaconda3
+DGCNN                    /home/FYP/heyu0012/.conda/envs/DGCNN
+GCNN_GAP                 /home/FYP/heyu0012/.conda/envs/GCNN_GAP
+graphgen              *  /home/FYP/heyu0012/.conda/envs/graphgen
+pytorch                  /home/FYP/heyu0012/.conda/envs/pytorch
+
+Using backend: pytorch
+  0%|          | 0/189 [00:00<?, ?it/s] 43%|████▎     | 82/189 [00:00<00:00, 813.56it/s] 87%|████████▋ | 164/189 [00:00<00:00, 813.19it/s]100%|██████████| 189/189 [00:00<00:00, 808.94it/s]Graphs counted 188
+Successfully done node count 7
+Successfully done edge count 1
+{'node_forward': {'0': 0, '1': 1, '2': 2, '3': 3, '5': 4, '6': 5, '4': 6}, 'node_backward': {0: '0', 1: '1', 2: '2', 3: '3', 4: '5', 5: '6', 6: '4'}, 'edge_forward': {'0': 0}, 'edge_backward': {0: '0'}, 'max_nodes': 28, 'min_nodes': 10, 'max_edges': 33, 'min_edges': 10, 'max_degree': 4}
+graphs_test: [[(2, 0), (6, 0), (10, 1), (23, 1), (26, 1), (37, 0), (45, 1), (62, 1), (63, 1), (64, 0), (66, 1), (68, 1), (71, 1), (76, 0), (80, 1), (93, 1), (95, 1), (106, 1), (107, 1), (115, 0), (127, 1), (129, 0), (130, 0), (132, 0), (135, 1), (142, 0), (144, 1), (145, 1), (149, 0), (152, 1), (154, 0), (162, 1), (170, 1), (171, 1), (172, 1), (174, 0), (177, 1), (183, 1)], [(4, 0), (5, 1), (7, 1), (14, 1), (16, 0), (19, 1), (24, 1), (25, 1), (28, 1), (31, 1), (38, 0), (39, 0), (40, 1), (55, 1), (58, 1), (59, 1), (69, 0), (72, 0), (75, 0), (81, 1), (92, 1), (110, 0), (111, 1), (112, 0), (120, 1), (121, 1), (123, 0), (126, 1), (137, 0), (147, 1), (150, 1), (155, 0), (158, 1), (163, 1), (169, 1), (173, 1), (176, 1), (187, 0)], [(8, 0), (15, 1), (22, 1), (27, 1), (29, 1), (30, 1), (32, 1), (33, 0), (34, 1), (41, 0), (44, 1), (47, 1), (48, 1), (51, 1), (54, 0), (67, 1), (73, 1), (77, 0), (84, 1), (85, 1), (87, 0), (89, 1), (91, 1), (98, 1), (99, 0), (100, 1), (103, 1), (105, 1), (113, 0), (116, 1), (125, 1), (128, 0), (131, 0), (136, 1), (153, 0), (159, 0), (167, 0), (182, 1)], [(0, 1), (1, 0), (3, 1), (13, 0), (17, 1), (18, 0), (20, 1), (21, 1), (42, 1), (43, 1), (49, 1), (52, 1), (60, 1), (65, 0), (74, 1), (78, 1), (79, 1), (82, 1), (88, 0), (90, 1), (94, 1), (97, 0), (108, 1), (117, 1), (118, 0), (124, 1), (134, 0), (140, 0), (143, 0), (151, 1), (156, 1), (166, 1), (168, 1), (179, 1), (180, 0), (184, 0), (186, 1)], [(9, 1), (11, 1), (12, 1), (35, 0), (36, 1), (46, 1), (50, 1), (53, 1), (56, 1), (57, 1), (61, 0), (70, 1), (83, 0), (86, 1), (96, 1), (101, 1), (102, 1), (104, 1), (109, 0), (114, 1), (119, 0), (122, 0), (133, 1), (138, 0), (139, 1), (141, 0), (146, 0), (148, 1), (157, 1), (160, 1), (161, 1), (164, 1), (165, 1), (175, 1), (178, 0), (181, 0), (185, 0)]]
+Model: DFScodeRNN_cls
+Device: cuda:0
+Graph type: MUTAG
+Training set: 150
+Number of labels: 2
+Max number of nodes: 28
+Max number of edges: 33
+Min number of nodes: 10
+Min number of edges: 10
+Max degree of a node: 4
+No. of node labels: 7
+No. of edge labels: 1
+number of batches:  4
+
+/home/FYP/heyu0012/.conda/envs/graphgen/lib/python3.7/site-packages/torch/nn/modules/rnn.py:60: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  "num_layers={}".format(dropout, num_layers))
+Epoch: 1/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 2/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 3/10000, train loss: 0.035, accuray: 0.656
+number of batches:  4
+Epoch: 4/10000, train loss: 0.032, accuray: 0.688
+number of batches:  4
+Epoch: 5/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 6/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 7/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 8/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 9/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 10/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 11/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 12/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 13/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 14/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 15/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 16/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 17/10000, train loss: 0.032, accuray: 0.688
+number of batches:  4
+Epoch: 18/10000, train loss: 0.032, accuray: 0.680
+number of batches:  4
+Epoch: 19/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 20/10000, train loss: 0.033, accuray: 0.664
+Model Saved - Epoch: 20/10000, train loss: 0.032636
+number of batches:  4
+Epoch: 21/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 22/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 23/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 24/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 25/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 26/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 27/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 28/10000, train loss: 0.033, accuray: 0.656
+number of batches:  4
+Epoch: 29/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 30/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 31/10000, train loss: 0.035, accuray: 0.633
+number of batches:  4
+Epoch: 32/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 33/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 34/10000, train loss: 0.032, accuray: 0.680
+number of batches:  4
+Epoch: 35/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 36/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 37/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 38/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 39/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 40/10000, train loss: 0.033, accuray: 0.672
+Model Saved - Epoch: 40/10000, train loss: 0.032829
+number of batches:  4
+Epoch: 41/10000, train loss: 0.032, accuray: 0.688
+number of batches:  4
+Epoch: 42/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 43/10000, train loss: 0.035, accuray: 0.625
+number of batches:  4
+Epoch: 44/10000, train loss: 0.035, accuray: 0.641
+number of batches:  4
+Epoch: 45/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 46/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 47/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 48/10000, train loss: 0.033, accuray: 0.656
+number of batches:  4
+Epoch: 49/10000, train loss: 0.032, accuray: 0.680
+number of batches:  4
+Epoch: 50/10000, train loss: 0.033, accuray: 0.688
+number of batches:  4
+Epoch: 51/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 52/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 53/10000, train loss: 0.033, accuray: 0.656
+number of batches:  4
+Epoch: 54/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 55/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 56/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 57/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 58/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 59/10000, train loss: 0.032, accuray: 0.688
+number of batches:  4
+Epoch: 60/10000, train loss: 0.034, accuray: 0.664
+Model Saved - Epoch: 60/10000, train loss: 0.033656
+number of batches:  4
+Epoch: 61/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 62/10000, train loss: 0.035, accuray: 0.641
+number of batches:  4
+Epoch: 63/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 64/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 65/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 66/10000, train loss: 0.032, accuray: 0.703
+number of batches:  4
+Epoch: 67/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 68/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 69/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 70/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 71/10000, train loss: 0.035, accuray: 0.641
+number of batches:  4
+Epoch: 72/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 73/10000, train loss: 0.032, accuray: 0.680
+number of batches:  4
+Epoch: 74/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 75/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 76/10000, train loss: 0.032, accuray: 0.688
+number of batches:  4
+Epoch: 77/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 78/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 79/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 80/10000, train loss: 0.034, accuray: 0.648
+Model Saved - Epoch: 80/10000, train loss: 0.034160
+number of batches:  4
+Epoch: 81/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 82/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 83/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 84/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 85/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 86/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 87/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 88/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 89/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 90/10000, train loss: 0.033, accuray: 0.656
+number of batches:  4
+Epoch: 91/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 92/10000, train loss: 0.032, accuray: 0.680
+number of batches:  4
+Epoch: 93/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 94/10000, train loss: 0.035, accuray: 0.641
+number of batches:  4
+Epoch: 95/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 96/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 97/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 98/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 99/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 100/10000, train loss: 0.032, accuray: 0.688
+Model Saved - Epoch: 100/10000, train loss: 0.032305
+number of batches:  4
+Epoch: 101/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 102/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 103/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 104/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 105/10000, train loss: 0.032, accuray: 0.688
+number of batches:  4
+Epoch: 106/10000, train loss: 0.035, accuray: 0.641
+number of batches:  4
+Epoch: 107/10000, train loss: 0.032, accuray: 0.688
+number of batches:  4
+Epoch: 108/10000, train loss: 0.032, accuray: 0.688
+number of batches:  4
+Epoch: 109/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 110/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 111/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 112/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 113/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 114/10000, train loss: 0.035, accuray: 0.633
+number of batches:  4
+Epoch: 115/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 116/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 117/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 118/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 119/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 120/10000, train loss: 0.034, accuray: 0.648
+Model Saved - Epoch: 120/10000, train loss: 0.034357
+number of batches:  4
+Epoch: 121/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 122/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 123/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 124/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 125/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 126/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 127/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 128/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 129/10000, train loss: 0.032, accuray: 0.688
+number of batches:  4
+Epoch: 130/10000, train loss: 0.035, accuray: 0.625
+number of batches:  4
+Epoch: 131/10000, train loss: 0.032, accuray: 0.695
+number of batches:  4
+Epoch: 132/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 133/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 134/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 135/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 136/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 137/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 138/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 139/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 140/10000, train loss: 0.034, accuray: 0.648
+Model Saved - Epoch: 140/10000, train loss: 0.034266
+number of batches:  4
+Epoch: 141/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 142/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 143/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 144/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 145/10000, train loss: 0.033, accuray: 0.688
+number of batches:  4
+Epoch: 146/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 147/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 148/10000, train loss: 0.031, accuray: 0.711
+number of batches:  4
+Epoch: 149/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 150/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 151/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 152/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 153/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 154/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 155/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 156/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 157/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 158/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 159/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 160/10000, train loss: 0.033, accuray: 0.672
+Model Saved - Epoch: 160/10000, train loss: 0.033109
+number of batches:  4
+Epoch: 161/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 162/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 163/10000, train loss: 0.035, accuray: 0.633
+number of batches:  4
+Epoch: 164/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 165/10000, train loss: 0.033, accuray: 0.672
+number of batches:  4
+Epoch: 166/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 167/10000, train loss: 0.035, accuray: 0.641
+number of batches:  4
+Epoch: 168/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 169/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 170/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 171/10000, train loss: 0.033, accuray: 0.664
+number of batches:  4
+Epoch: 172/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 173/10000, train loss: 0.034, accuray: 0.656
+number of batches:  4
+Epoch: 174/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 175/10000, train loss: 0.034, accuray: 0.648
+number of batches:  4
+Epoch: 176/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+Epoch: 177/10000, train loss: 0.033, accuray: 0.680
+number of batches:  4
+Epoch: 178/10000, train loss: 0.034, accuray: 0.664
+number of batches:  4
+slurmstepd: error: *** JOB 11408 ON SCSEGPU-TC1-01 CANCELLED AT 2020-12-31T17:31:48 ***

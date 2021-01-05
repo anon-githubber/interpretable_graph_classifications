@@ -1,0 +1,203 @@
+# conda environments:
+#
+base                     /apps/anaconda3
+DGCNN                    /home/FYP/heyu0012/.conda/envs/DGCNN
+GAT                      /home/FYP/heyu0012/.conda/envs/GAT
+aaa                      /home/FYP/heyu0012/.conda/envs/aaa
+graphgen              *  /home/FYP/heyu0012/.conda/envs/graphgen
+pytorch                  /home/FYP/heyu0012/.conda/envs/pytorch
+
+1
+/home/FYP/heyu0012/results/graphgen/DfsRNN_cora/model_save/DFScodeRNN_cora_2020-12-13-09-38-59/DFScodeRNN_cora_400.dat
+Evaluating DFScodeRNN_cora, run at 2020-12-13-09-38-59, epoch 400
+Evaluating DFScodeRNN_cora, run at 2020-12-13-09-38-59, epoch 400
+Graphs generated - 2560
+Evaluating novelity
+88 / 92 predicted graphs are not subgraphs of reference graphs
+153 / 157 predicted graphs do not have reference graphs as subgraphs
+85 / 92 graphs for sure novel
+Novelty - 0.923913
+Evaluating uniqueness
+1692 / 1711 predicted graphs are unique
+Uniqueness - 0.988895
+1886
+Using backend: pytorch
+Time computing degree mmd:  0:01:08.380888
+Time computing clustering mmd:  0:03:30.853786
+Time computing orbit mmd:  0:00:14.548590
+Time computing NSPDK mmd:  0:00:31.518665
+Time computing node label mmd:  0:00:13.930310
+Time computing edge label mmd:  0:00:09.790128
+Time computing joint node label and degree mmd:  0:05:14.783433
+Running average of metrics:
+
+Node count avg: Test - 52.941406, Generated - 37.625000
+Edge count avg: Test - 61.898438, Generated - 42.148438
+MMD Degree - 0.060215, MMD Clustering - 0.082861, MMD Orbits - 0.087386
+MMD NSPDK - 0.011736
+MMD Node label - 0.015430, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.012767
+----------------------------------------------------------------------
+
+Time computing degree mmd:  0:00:36.619527
+Time computing clustering mmd:  0:03:34.649424
+Time computing orbit mmd:  0:00:14.328275
+Time computing NSPDK mmd:  0:00:31.968072
+Time computing node label mmd:  0:00:13.800085
+Time computing edge label mmd:  0:00:09.640413
+Time computing joint node label and degree mmd:  0:05:09.288487
+Running average of metrics:
+
+Node count avg: Test - 52.837891, Generated - 38.619141
+Edge count avg: Test - 61.619141, Generated - 43.439453
+MMD Degree - 0.058514, MMD Clustering - 0.089930, MMD Orbits - 0.080472
+MMD NSPDK - 0.011217
+MMD Node label - 0.016654, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.013459
+----------------------------------------------------------------------
+
+Time computing degree mmd:  0:00:36.876094
+Time computing clustering mmd:  0:03:32.335566
+Time computing orbit mmd:  0:00:14.812930
+Time computing NSPDK mmd:  0:00:30.473437
+Time computing node label mmd:  0:00:14.304431
+Time computing edge label mmd:  0:00:10.149007
+Time computing joint node label and degree mmd:  0:05:47.958571
+Running average of metrics:
+
+Node count avg: Test - 52.466146, Generated - 38.354167
+Edge count avg: Test - 61.367188, Generated - 43.298177
+MMD Degree - 0.055822, MMD Clustering - 0.083601, MMD Orbits - 0.080104
+MMD NSPDK - 0.011074
+MMD Node label - 0.016985, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.013282
+----------------------------------------------------------------------
+
+Time computing degree mmd:  0:00:43.454403
+Time computing clustering mmd:  0:03:29.719572
+Time computing orbit mmd:  0:00:14.756977
+Time computing NSPDK mmd:  0:00:31.084308
+Time computing node label mmd:  0:00:14.000353
+Time computing edge label mmd:  0:00:09.723312
+Time computing joint node label and degree mmd:  0:04:43.478547
+Running average of metrics:
+
+Node count avg: Test - 52.773438, Generated - 38.432617
+Edge count avg: Test - 61.621094, Generated - 43.306641
+MMD Degree - 0.056305, MMD Clustering - 0.081758, MMD Orbits - 0.082845
+MMD NSPDK - 0.011084
+MMD Node label - 0.016277, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.013284
+----------------------------------------------------------------------
+
+Time computing degree mmd:  0:00:42.702678
+Time computing clustering mmd:  0:03:33.005494
+Time computing orbit mmd:  0:00:15.245790
+Time computing NSPDK mmd:  0:00:30.441243
+Time computing node label mmd:  0:00:14.116993
+Time computing edge label mmd:  0:00:09.924838
+Time computing joint node label and degree mmd:  0:05:11.955491
+Running average of metrics:
+
+Node count avg: Test - 52.814844, Generated - 38.390625
+Edge count avg: Test - 61.624219, Generated - 43.197656
+MMD Degree - 0.057411, MMD Clustering - 0.084945, MMD Orbits - 0.084916
+MMD NSPDK - 0.011299
+MMD Node label - 0.015404, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.013055
+----------------------------------------------------------------------
+
+Time computing degree mmd:  0:00:39.087618
+Time computing clustering mmd:  0:03:30.067255
+Time computing orbit mmd:  0:00:15.913229
+Time computing NSPDK mmd:  0:00:29.075487
+Time computing node label mmd:  0:00:13.962332
+Time computing edge label mmd:  0:00:10.522346
+Time computing joint node label and degree mmd:  0:04:49.284095
+Running average of metrics:
+
+Node count avg: Test - 52.514323, Generated - 38.338542
+Edge count avg: Test - 61.155599, Generated - 43.209635
+MMD Degree - 0.055846, MMD Clustering - 0.082711, MMD Orbits - 0.078808
+MMD NSPDK - 0.011166
+MMD Node label - 0.014785, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.012732
+----------------------------------------------------------------------
+
+Time computing degree mmd:  0:00:37.812189
+Time computing clustering mmd:  0:03:33.575785
+Time computing orbit mmd:  0:00:16.300053
+Time computing NSPDK mmd:  0:00:30.132837
+Time computing node label mmd:  0:00:14.782195
+Time computing edge label mmd:  0:00:10.137315
+Time computing joint node label and degree mmd:  0:05:32.511165
+Running average of metrics:
+
+Node count avg: Test - 52.622210, Generated - 38.383929
+Edge count avg: Test - 61.315848, Generated - 43.282366
+MMD Degree - 0.056184, MMD Clustering - 0.082390, MMD Orbits - 0.078678
+MMD NSPDK - 0.011162
+MMD Node label - 0.014393, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.012799
+----------------------------------------------------------------------
+
+Time computing degree mmd:  0:00:42.653731
+Time computing clustering mmd:  0:03:31.642119
+Time computing orbit mmd:  0:00:16.442929
+Time computing NSPDK mmd:  0:00:30.644290
+Time computing node label mmd:  0:00:14.166013
+Time computing edge label mmd:  0:00:10.148317
+Time computing joint node label and degree mmd:  0:05:33.247161
+Running average of metrics:
+
+Node count avg: Test - 52.541016, Generated - 38.444336
+Edge count avg: Test - 61.201172, Generated - 43.367188
+MMD Degree - 0.056274, MMD Clustering - 0.082658, MMD Orbits - 0.077327
+MMD NSPDK - 0.011169
+MMD Node label - 0.013739, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.012890
+----------------------------------------------------------------------
+
+Time computing degree mmd:  0:00:40.217955
+Time computing clustering mmd:  0:03:30.362816
+Time computing orbit mmd:  0:00:16.674851
+Time computing NSPDK mmd:  0:00:30.513177
+Time computing node label mmd:  0:00:14.531737
+Time computing edge label mmd:  0:00:10.500567
+Time computing joint node label and degree mmd:  0:05:20.768008
+Running average of metrics:
+
+Node count avg: Test - 52.687500, Generated - 38.354167
+Edge count avg: Test - 61.414931, Generated - 43.256944
+MMD Degree - 0.056877, MMD Clustering - 0.085659, MMD Orbits - 0.080029
+MMD NSPDK - 0.011282
+MMD Node label - 0.014412, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.012849
+----------------------------------------------------------------------
+
+Time computing degree mmd:  0:00:45.164014
+Time computing clustering mmd:  0:03:31.836814
+Time computing orbit mmd:  0:00:17.264285
+Time computing NSPDK mmd:  0:00:31.884839
+Time computing node label mmd:  0:00:14.352582
+Time computing edge label mmd:  0:00:10.493537
+Time computing joint node label and degree mmd:  0:05:12.119359
+Running average of metrics:
+
+Node count avg: Test - 52.869141, Generated - 38.344922
+Edge count avg: Test - 61.666797, Generated - 43.260937
+MMD Degree - 0.056919, MMD Clustering - 0.084873, MMD Orbits - 0.081442
+MMD NSPDK - 0.011143
+MMD Node label - 0.014023, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.012634
+----------------------------------------------------------------------
+
+Evaluating DFScodeRNN_cora, run at 2020-12-13-09-38-59, epoch 400
+Node count avg: Test - 52.869141, Generated - 38.344922
+Edge count avg: Test - 61.666797, Generated - 43.260937
+MMD Degree - 0.056919, MMD Clustering - 0.084873, MMD Orbits - 0.081442
+MMD NSPDK - 0.011143
+MMD Node label - 0.014023, MMD Edge label - 0.000000
+MMD Joint Node label and degree - 0.012634
+----------------------------------------------------------------------
+

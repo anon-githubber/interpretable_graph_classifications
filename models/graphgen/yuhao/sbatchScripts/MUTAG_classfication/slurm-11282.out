@@ -1,0 +1,26 @@
+# conda environments:
+#
+base                     /apps/anaconda3
+DGCNN                    /home/FYP/heyu0012/.conda/envs/DGCNN
+GCNN_GAP                 /home/FYP/heyu0012/.conda/envs/GCNN_GAP
+graphgen              *  /home/FYP/heyu0012/.conda/envs/graphgen
+pytorch                  /home/FYP/heyu0012/.conda/envs/pytorch
+
+All
+Breast
+ENZYMES
+Leukemia
+Lung
+MUTAG
+Yeast
+__pycache__
+citeseer
+cora
+preprocess.py
+process_dataset.py
+Using backend: pytorch
+  0%|          | 0/188 [00:00<?, ?it/s]100%|██████████| 188/188 [00:00<00:00, 3909.11it/s]
+Graphs produced 188
+Successfully done node count 7
+Successfully done edge count 1
+{'node_forward': {'0': 0, '1': 1, '2': 2, '3': 3, '5': 4, '6': 5, '4': 6}, 'node_backward': {0: '0', 1: '1', 2: '2', 3: '3', 4: '5', 5: '6', 6: '4'}, 'edge_forward': {'0': 0}, 'edge_backward': {0: '0'}, 'max_nodes': 28, 'min_nodes': 10, 'max_edges': 33, 'min_edges': 10, 'max_degree': 4}
