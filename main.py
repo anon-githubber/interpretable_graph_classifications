@@ -10,6 +10,7 @@ import os
 import time
 import datetime
 import argparse
+import sys
 
 import yaml
 import json
@@ -45,6 +46,11 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 	:param optimizer: optimizer to use
 	:return: average loss and other model performance metrics
 	'''
+
+	print('*** 4 g_list: ', g_list)
+	print('*** 5 sample_idxes: ', sample_idxes)
+	print('*** 6 config: ', config)
+
 	n_samples = 0
 	all_targets = []
 	all_scores = []
@@ -84,6 +90,12 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 
 		# Perform training
 		start_forward = time.perf_counter()
+
+		print('*** 7 node_feat: ', node_feat)
+		print('*** 8 n2n: ', n2n)
+
+		sys.exit()
+
 		output = classifier(node_feat, n2n, subg, batch_graph)
 		#print('** main.py line 88: output.is_cuda: ', output.is_cuda)
 		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
@@ -277,6 +289,8 @@ if __name__ == '__main__':
 					train_graph_fold, classifier_model,
 					train_idxes, config, dataset_features,
 					optimizer=optimizer)
+
+				sys.exit()
 
 				# Print training results for epoch
 				print('\033[92m'

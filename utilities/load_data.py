@@ -338,7 +338,13 @@ def load_model_data(dataset_name, k_fold=5, dataset_autobalance=False, print_dat
 	train_graphs = []
 	test_graphs = []
 	for train_index, test_index in stratified_KFold.split(graph_list, graph_labels):
+
+		print('*** 1 train_index: ', train_index)
+		print('*** 2 test_index: ', test_index)
+
 		train_graphs.append([graph_list[i] for i in train_index])
 		test_graphs.append([graph_list[i] for i in test_index])
+
+	print('*** 3 dataset_features: ', dataset_features)
 
 	return train_graphs, test_graphs, dataset_features
