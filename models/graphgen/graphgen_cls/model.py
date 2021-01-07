@@ -162,10 +162,10 @@ class RNN(nn.Module):
     def init_hidden(self, batch_size):
         if self.rnn_type == 'GRU':
             # h0
-            return torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device)
+            self.hidden =  torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device)
         elif self.rnn_type == 'LSTM':
             # (h0, c0)
-            return (torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device),
+            self.hidden = (torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device),
                     torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device))
 
     def forward(self, input, input_len=None):
@@ -183,7 +183,9 @@ class RNN(nn.Module):
         
         # print('model.py: output.size(): ', output.size())
 
-        output = output[:, -1, :]
+        print(f'output: {output}')
+        print(f'output.size() {output.size()}')
+
         # print('model.py: output: ', output)
         # print('model.py: output.size(): ', output.size())
         # print('output.size(): ', output.size(), '\n')
@@ -195,20 +197,42 @@ class RNN(nn.Module):
         # if self.output_size is not None:
         #     output = self.output(output)
 
-        return output
+        return output[:, -1, :]
 
+
+# class SequentialModel(nn.Module):
+#     def __init__(self, *args):
+#         super(SequentialModel, self).__init__()
+#         self.out = nn.Sequential(*args)
+        
+#     def forward(self, x):
+#         return self.out(x)
+
+class SequentialModel(nn.Module):
+    def __init__(self, dfs_code_rnn, output_layer):
+        super(SequentialModel, self).__init__()
+        self.dfs_code_rnn = dfs_code_rnn
+        self.output_layer = output_layer
+        
+    def forward(self, x):
+        out = self.dfs_code_rnn(x)
+        out = self.output_layer(out)
+        return out
 
 def create_model(args, feature_map):
     max_nodes = feature_map['max_nodes']
     len_node_vec, len_edge_vec = len(
         feature_map['node_forward']) + 1, len(feature_map['edge_forward']) + 1
 
-    feature_len = 2 * (max_nodes + 1) + 2 * len_node_vec + len_edge_vec
+    feature_len = 2 * (max_nodes + 1) + 2 * (len_node_vec) + len_edge_vec
 
-    if args.loss_type == 'BCE':
-        MLP_layer = MLP_Binary
-    elif args.loss_type == 'NLL':
-        MLP_layer = MLP_Log_Softmax
+    # MLP_layer = MLP_Binary
+    MLP_layer = MLP_onelayer
+
+    # if args.loss_type == 'BCE':
+    #     MLP_layer = MLP_Binary
+    # elif args.loss_type == 'NLL':
+    #     MLP_layer = MLP_Log_Softmax
 
     dfs_code_rnn = RNN(
         input_size=feature_len, embedding_size=args.embedding_size_dfscode_rnn,
@@ -234,17 +258,24 @@ def create_model(args, feature_map):
 
 
     output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
+    # output_layer = MLP_layer(
+    #         input_size=args.hidden_size_dfscode_rnn, 
+    #         output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
+
     output_layer = MLP_layer(
             input_size=args.hidden_size_dfscode_rnn, 
-            output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
+            output_size=output_size).to(device=args.device)
 
-    model = {
-        'dfs_code_rnn': dfs_code_rnn,
-        # 'output_timestamp1': output_timestamp1,
-        # 'output_timestamp2': output_timestamp2,
-        # 'output_vertex1': output_vertex1,
-        # 'output_vertex2': output_vertex2
-        'output_layer' : output_layer
-    }
+    # model = {
+    #     'dfs_code_rnn': dfs_code_rnn,
+    #     # 'output_timestamp1': output_timestamp1,
+    #     # 'output_timestamp2': output_timestamp2,
+    #     # 'output_vertex1': output_vertex1,
+    #     # 'output_vertex2': output_vertex2
+    #     'output_layer' : output_layer
+    # }
 
-    return model
+    # TODO 3
+    # 修改之前graphgen用model的代码,现在统一用SequentialModel
+
+    return SequentialModel(dfs_code_rnn, output_layer)

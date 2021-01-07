@@ -10,7 +10,8 @@ PATH:  /home/FYP/heyu0012/.conda/envs/GCNN_GAP/bin:/cm/local/apps/environment-mo
 ====== begin of gnn configuration ======
 | msg_average = 0
 ======   end of gnn configuration ======
-  0%|          | 0/150 [00:00<?, ?batch/s]
+
+  0%|          | 0/150 [00:00<?, ?batch/s]
 
 torch.cuda.is_available():  True 
 
@@ -125,4 +126,5 @@ Training model with dataset, testing using fold 0
                       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
                       1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]),
        device='cuda:0', size=(17, 17), nnz=38, layout=torch.sparse_coo)
-  0%|          | 0/150 [00:00<?, ?batch/s]
+
+  0%|          | 0/150 [00:00<?, ?batch/s]

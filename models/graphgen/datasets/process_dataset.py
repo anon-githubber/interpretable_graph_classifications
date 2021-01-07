@@ -394,10 +394,25 @@ def create_graphs(args):
         print('Dataset - {} is not valid'.format(args.graph_type))
         exit()
 
-    args.grgph_label_path = base_path
+    args.base_path = base_path
     args.current_dataset_path = os.path.join(base_path, 'graphs/')
     args.min_dfscode_path = os.path.join(base_path, 'min_dfscodes/')
     min_dfscode_tensor_path = os.path.join(base_path, 'min_dfscode_tensors/')
+    args.min_dfscode_tensor_path = min_dfscode_tensor_path
+    # print('!!!')
+    # print(args.base_path)
+    # print(args.current_dataset_path)
+    # print(args.min_dfscode_path)
+    # print(min_dfscode_tensor_path)
+
+    if not os.path.exists(base_path):
+        os.makedirs(base_path)
+
+    if not os.path.exists(args.current_dataset_path):
+        os.mkdir(args.current_dataset_path)
+
+    if not os.path.exists(min_dfscode_tensor_path):
+        os.symlink(os.environ.get('MUTAG_DFSTENSOR_PATH'), min_dfscode_tensor_path[:-1])
 
     if args.note == 'GraphRNN' or args.note == 'DGMG':
         args.current_processed_dataset_path = args.current_dataset_path
@@ -432,18 +447,17 @@ def create_graphs(args):
 
         elif args.graph_type in ['MUTAG']:
             count = unserialize_MUTAG_pickle(
-                input_path, args.grgph_label_path, args.current_dataset_path)
+                input_path, args.base_path, args.current_dataset_path)
 
         print('Graphs produced', count)
-    else:
-        count = len([name for name in os.listdir(
-            args.current_dataset_path) if name.endswith(".dat")])
-        print('Graphs counted', count)
+
+    # TODO 1
+    # 暂时comment掉, 之后要去掉
 
     # Produce feature map
-    feature_map = mapping(args.current_dataset_path,
-                          args.current_dataset_path + 'map.dict')
-    print(feature_map)
+    # feature_map = mapping(args.current_dataset_path,
+    #                       args.current_dataset_path + 'map.dict')
+    # print(f'feature_map: {feature_map}')
 
     if (args.note in ['DFScodeRNN', 'DFScodeRNN_cls']) and args.produce_min_dfscodes:
         # Empty the directory
@@ -467,6 +481,8 @@ def create_graphs(args):
         end = time.time()
         print('Time taken to make dfscode tensors= {:.3f}s'.format(
             end - start))
+
+    count = len([name for name in os.listdir(min_dfscode_tensor_path) if name.endswith(".dat")])
 
     graphs = [i for i in range(count)]
     return graphs

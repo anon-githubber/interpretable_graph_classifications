@@ -1,3 +1,5 @@
+import pprint
+
 import random
 import numpy as np
 
@@ -24,7 +26,7 @@ from models import *
 #from interpretability_methods import *
 
 # Import user-defined functions
-from utilities.load_data import load_model_data
+from utilities.load_data import load_model_data, split_train_test
 from utilities.util import graph_to_tensor
 from utilities.output_results import output_to_images
 from utilities.metrics import auc_scores, compute_metric
@@ -32,9 +34,155 @@ from utilities.metrics import auc_scores, compute_metric
 # Check if gpu is available
 print('\n\ntorch.cuda.is_available(): ', torch.cuda.is_available(), '\n\n')
 
+
 # Define timer list to report running statistics
 timing_dict = {"forward": [], "backward": []}
 run_statistics_string = "Run statistics: \n"
+
+def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args, dataset_features, optimizer=None):
+	'''
+	:param g_list: list of graphs to trainover
+	:param classifier: the initialised classifier
+	:param config: Run configurations as stated in config.yml
+	:param dataset_features: Dataset features obtained from load_data.py
+	:param optimizer: optimizer to use
+	:return: average loss and other model performance metrics
+	'''
+
+	from models.graphgen.graphgen_cls.data import load_dfscode_tensor
+	from models.graphgen.graphgen_cls.train import get_RNN_input_from_dfscode_tensor
+
+	print('*** 4 len(sample_idxes): ', len(sample_idxes))
+	print('*** 5 sample_idxes: ', sample_idxes)
+	# print('*** 6 config: ', config)
+
+	n_samples = 0
+	all_targets = []
+	all_scores = []
+	total_loss = []
+
+	# Determine batch size and initialise progress bar (pbar)
+	bsize = max(config["general"]["batch_size"], 1)
+
+	total_iters = (len(sample_idxes) + (bsize - 1) *
+				   (optimizer is None)) // bsize
+	# pbar = tqdm(range(total_iters), unit='batch')
+	print(f'*** 6 total_iters: {total_iters}')
+
+	# Create temporary timer dict to store timing data for this loop
+	temp_timing_dict = {"forward": [], "backward": []}
+
+	# init classifier
+	print(f'*** 7 classifier: {classifier}')
+	classifier.dfs_code_rnn.init_hidden(batch_size=bsize)
+
+	# For each batch
+	for pos in range(total_iters):
+		selected_idx = sample_idxes[pos * bsize: (pos + 1) * bsize]
+
+		batch_graph_tensors = []
+		for idx in selected_idx:
+			dfscode_tensor = load_dfscode_tensor(args.min_dfscode_tensor_path, idx)
+			print(f'*** 7 dfscode_tensor: {dfscode_tensor}')
+			
+			batch_graph_tensors.append(get_RNN_input_from_dfscode_tensor(dfscode_tensor, bsize, args, dataset_features))
+			# print(f'*** 7 batch_graph_tensors: {batch_graph_tensors}')
+
+		batch_graph_tensors = torch.cat(batch_graph_tensors).unsqueeze(0)
+		print(f'*** 7 batch_graph_tensors: {batch_graph_tensors}')
+		print(f'*** 7 batch_graph_tensors.size(): {batch_graph_tensors.size()}')
+
+		targets = [graph_label_list[idx] for idx in selected_idx]
+		all_targets += targets
+
+		# Get graph labels of all graphs in batch
+		labels = torch.LongTensor(len(selected_idx))
+
+		for i in range(len(selected_idx)):
+			labels[i] = targets[i]
+
+		if cmd_args.cuda == '1':
+			batch_graph_tensors = batch_graph_tensors.cuda()
+			labels = labels.cuda()
+
+		# Perform training
+		start_forward = time.perf_counter()
+
+		# print('*** 7 node_feat: ', node_feat)
+		# print('*** 8 n2n: ', n2n)
+
+		# sys.exit()
+
+		# dfscode_rnn_output = classifier.dfs_code_rnn(batch_graph_tensors)
+		# output = classifier.output_layer(dfscode_rnn_output)
+		output = classifier(batch_graph_tensors)
+		output = torch.squeeze(output).unsqueeze(0)
+		#print('** main.py line 88: output.is_cuda: ', output.is_cuda)
+		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
+
+		# TODO 5 
+		# softmax, logits, prob, output
+
+		# logits = F.log_softmax(output, dim=1)
+		# prob = F.softmax(logits, dim=1)
+		logits = prob = output
+		print(f'output: {output}')
+		print(f'logits: {logits}')
+		print(f'prob: {prob}')
+		print(f'labels: {labels}')
+		logits = logits.float()
+		labels = labels.float()
+
+		loss = F.binary_cross_entropy(logits, labels)
+		loss.backward()
+
+		print('loss.backward()')
+		sys.exit()
+
+		loss = F.binary_cross_entropy(logits.float(), labels.float())
+		pred = torch.tensor(1) if logits.squeeze()>0 else torch.tensor(0)
+		# loss = F.nll_loss(logits, labels)
+		# pred = logits.data.max(1, keepdim=True)[1]
+		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() /\
+			  float(labels.size()[0])
+		all_scores.append(prob.cpu().detach())  # for classification
+
+		# Back propagate loss
+		if optimizer is not None:
+			with torch.autograd.set_detect_anomaly(True):
+				optimizer.zero_grad()
+				start_backward = time.perf_counter()
+				loss.backward(retain_graph=True)
+				temp_timing_dict["backward"].append(
+					time.perf_counter() - start_backward)
+				optimizer.step()
+
+		loss = loss.data.cpu().detach().numpy()
+		# print('loss: %0.5f acc: %0.5f' % (loss, acc))
+		total_loss.append( np.array([loss, acc]) * len(selected_idx))
+
+		n_samples += len(selected_idx)
+
+	if optimizer is None:
+		assert n_samples == len(g_list)
+
+	# Calculate average loss and report performance metrics
+	total_loss = np.array(total_loss)
+	avg_loss = np.sum(total_loss, 0) / n_samples
+	roc_auc, prc_auc = auc_scores(all_targets, all_scores)
+	avg_loss = np.concatenate((avg_loss, [roc_auc], [prc_auc]))
+
+	# Append loop average to global timer tracking list.
+	# Only for training phase
+	if optimizer is not None:
+		timing_dict["forward"].append(
+			sum(temp_timing_dict["forward"])/
+			len(temp_timing_dict["forward"]))
+		timing_dict["backward"].append(
+			sum(temp_timing_dict["backward"])/
+			len(temp_timing_dict["backward"]))
+	
+	return avg_loss
 
 def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, optimizer=None):
 	'''
@@ -47,9 +195,9 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 	:return: average loss and other model performance metrics
 	'''
 
-	print('*** 4 g_list: ', g_list)
+	print('*** 4 len(g_list): ', len(g_list))
 	print('*** 5 sample_idxes: ', sample_idxes)
-	print('*** 6 config: ', config)
+	# print('*** 6 config: ', config)
 
 	n_samples = 0
 	all_targets = []
@@ -60,20 +208,20 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 	bsize = max(config["general"]["batch_size"], 1)
 	total_iters = (len(sample_idxes) + (bsize - 1) *
 				   (optimizer is None)) // bsize
-	pbar = tqdm(range(total_iters), unit='batch')
+	# pbar = tqdm(range(total_iters), unit='batch')
+	print(f'*** 6 total_iters: {total_iters}')
 
 	# Create temporary timer dict to store timing data for this loop
 	temp_timing_dict = {"forward": [], "backward": []}
 
 	# For each batch
-	for pos in pbar:
+	for pos in range(total_iters):
 		selected_idx = sample_idxes[pos * bsize: (pos + 1) * bsize]
 
 		batch_graph = [g_list[idx] for idx in selected_idx]
 		targets = [g_list[idx].label for idx in selected_idx]
 		all_targets += targets
 
-		# Convert graph to tensor
 		node_feat, n2n, subg = graph_to_tensor(
 			batch_graph, dataset_features["feat_dim"],
 			dataset_features["edge_feat_dim"], cmd_args.cuda)
@@ -91,10 +239,10 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 		# Perform training
 		start_forward = time.perf_counter()
 
-		print('*** 7 node_feat: ', node_feat)
-		print('*** 8 n2n: ', n2n)
+		# print('*** 7 node_feat: ', node_feat)
+		# print('*** 8 n2n: ', n2n)
 
-		sys.exit()
+		# sys.exit()
 
 		output = classifier(node_feat, n2n, subg, batch_graph)
 		#print('** main.py line 88: output.is_cuda: ', output.is_cuda)
@@ -121,7 +269,7 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 			optimizer.step()
 
 		loss = loss.data.cpu().detach().numpy()
-		pbar.set_description('loss: %0.5f acc: %0.5f' % (loss, acc))
+		# print('loss: %0.5f acc: %0.5f' % (loss, acc))
 		total_loss.append( np.array([loss, acc]) * len(selected_idx))
 
 		n_samples += len(selected_idx)
@@ -155,7 +303,7 @@ if __name__ == '__main__':
 	cmd_opt = argparse.ArgumentParser(
 		description='Argparser for graph classification')
 	cmd_opt.add_argument('-cuda', default='1', help='0-CPU, 1-GPU')
-	cmd_opt.add_argument('-gm', default='GCN', help='GNN model to use')
+	cmd_opt.add_argument('-gm', default='DFScodeRNN_cls', help='GNN model to use')
 	cmd_opt.add_argument('-data', default='MUTAG', help='Dataset to use')
 	# 0 -> Load classifier, 1 -> train from scratch
 	cmd_opt.add_argument('-retrain', default='1', help='Whether to re-train the classifier or use saved trained model')
@@ -171,16 +319,47 @@ if __name__ == '__main__':
 	np.random.seed(config["run"]["seed"])
 	torch.manual_seed(config["run"]["seed"])
 
+	# graphgen args
+	args=None
+
 	# [1] Load graph data using util.load_data(), see util.py =========================================================
 	# Specify the dataset to use and the number of folds for partitioning
-	train_graphs, test_graphs, dataset_features = load_model_data(
-		config["run"]["dataset"],
-		config["run"]["k_fold"],
-		config["general"]["data_autobalance"],
-		config["general"]["print_dataset_features"]
-	)
+
+	if config["run"]["model"]=='DFScodeRNN_cls':
+
+		sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "models/graphgen")))
+		sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "models/graphgen/bin")))
+
+
+		# import graphgen functions, replace args
+		from models.graphgen.main import *
+
+
+		graph_list = get_graph_list()
+		graph_label_list = get_graph_label_list()
+
+		
+		# TODO 2
+		# 统一 dataset features 和 feature map, 因为后面会用到
+		dataset_features = get_feature_map(graph_label_list)
+		# dataset_features are the same as feature_map in graphgen main.py
+
+		# here graphs are simply indices
+		train_graphs, test_graphs = split_train_test(config["run"]["k_fold"], graph_list, graph_label_list)
+		print(f'\n\ngraphgen args.__dict__: {pprint.pprint(args.__dict__)}\n\n')
+		print(f'\n\ndataset_features: {dataset_features}\n\n')
+
+	else:
+		train_graphs, test_graphs, dataset_features = load_model_data(
+			config["run"]["dataset"],
+			config["run"]["k_fold"],
+			config["general"]["data_autobalance"],
+			config["general"]["print_dataset_features"]
+		)
 
 	config["dataset_features"] = dataset_features
+
+	print(f'\n\nconfig: {config}\n\n')
 
 	# [2] Instantiate the classifier using config.yml =================================================================
 	# Display to user the current configuration used:
@@ -204,53 +383,54 @@ if __name__ == '__main__':
 
 	# If execution is set to use existing model:
 	# Hash the configurations
-	run_hash = hashlib.md5(
-		(json.dumps(config["run"], sort_keys=True).encode('utf-8'))).hexdigest()
-	model_hash = hashlib.md5(
-		json.dumps(config["GNN_models"][config["run"]["model"]], sort_keys=True).encode('utf-8')).hexdigest()
+	# run_hash = hashlib.md5(
+	# 	(json.dumps(config["run"], sort_keys=True).encode('utf-8'))).hexdigest()
+	# model_hash = hashlib.md5(
+	# 	json.dumps(config["GNN_models"][config["run"]["model"]], sort_keys=True).encode('utf-8')).hexdigest()
 
 	if cmd_args.retrain == '0':
-		# Load classifier if it exists:
-		model_list = None
-		try:
-			model_list = torch.load(
-				"tmp/saved_models/%s_%s_%s_%s.pth" %
-				(dataset_features["name"], config["run"]["model"], run_hash, model_hash))
+		# # Load classifier if it exists:
+		# model_list = None
+		# try:
+		# 	model_list = torch.load(
+		# 		"tmp/saved_models/%s_%s_%s_%s.pth" %
+		# 		(dataset_features["name"], config["run"]["model"], run_hash, model_hash))
 
-		except FileNotFoundError:
-			print("Retrain is disabled but no such save of %s for dataset %s with the current configurations exists "
-				  "in tmp/saved_models folder. Please retry run with -retrain enabled." %
-				  (dataset_features["name"], config["run"]["model"]))
-			exit()
+		# except FileNotFoundError:
+		# 	print("Retrain is disabled but no such save of %s for dataset %s with the current configurations exists "
+		# 		  "in tmp/saved_models folder. Please retry run with -retrain enabled." %
+		# 		  (dataset_features["name"], config["run"]["model"]))
+		# 	exit()
 
-		print("Testing models using saved model: " + config["run"]["model"])
+		# print("Testing models using saved model: " + config["run"]["model"])
 
-		# For each model trained on each fold
-		for fold_number in range(len(model_list)):
-			print("Testing using fold %s" % fold_number)
-			model_list[fold_number].eval()
+		# # For each model trained on each fold
+		# for fold_number in range(len(model_list)):
+		# 	print("Testing using fold %s" % fold_number)
+		# 	model_list[fold_number].eval()
 
-			# Get the test graph fold used in training the model
-			test_graph_fold = test_graphs[fold_number]
-			test_idxes = list(range(len(test_graph_fold)))
+		# 	# Get the test graph fold used in training the model
+		# 	test_graph_fold = test_graphs[fold_number]
+		# 	test_idxes = list(range(len(test_graph_fold)))
 
-			# Calculate test loss
-			test_loss = loop_dataset(test_graph_fold, model_list[fold_number],
-									 test_idxes, config, dataset_features)
+		# 	# Calculate test loss
+		# 	test_loss = loop_dataset(test_graph_fold, model_list[fold_number],
+		# 							 test_idxes, config, dataset_features)
 
-			# Print testing results for epoch
-			print('\033[93m'
-				  'average test: loss %.5f '
-				  'acc %.5f '
-				  'roc_auc %.5f '
-				  'prc_auc %.5f'
-				  '\033[0m' % (
-				test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
+		# 	# Print testing results for epoch
+		# 	print('\033[93m'
+		# 		  'average test: loss %.5f '
+		# 		  'acc %.5f '
+		# 		  'roc_auc %.5f '
+		# 		  'prc_auc %.5f'
+		# 		  '\033[0m' % (
+		# 		test_loss[0], test_loss[1], test_loss[2], test_loss[3]))
 
-			# Append epoch statistics for reporting purposes
-			model_metrics_dict["accuracy"].append(test_loss[1])
-			model_metrics_dict["roc_auc"].append(test_loss[2])
-			model_metrics_dict["prc_auc"].append(test_loss[3])
+		# 	# Append epoch statistics for reporting purposes
+		# 	model_metrics_dict["accuracy"].append(test_loss[1])
+		# 	model_metrics_dict["roc_auc"].append(test_loss[2])
+		# 	model_metrics_dict["prc_auc"].append(test_loss[3])
+		pass
 
 	# Retrain a new set of models if no existing model exists or if retraining is forced
 	else:
@@ -262,13 +442,17 @@ if __name__ == '__main__':
 				zip(train_graphs, test_graphs):
 			print("Training model with dataset, testing using fold %s"
 				  % fold_number)
-			exec_string = "classifier_model = %s(deepcopy(config[\"GNN_models\"][\"%s\"])," \
-						  " deepcopy(config[\"dataset_features\"]))" % \
-						  (config["run"]["model"], config["run"]["model"])
-			exec (exec_string)
+
+			# load model
+			if config["run"]["model"]=='DFScodeRNN_cls':
+				classifier_model = get_model(dataset_features)
+			else:
+				exec_string = "classifier_model = %s(deepcopy(config[\"GNN_models\"][\"%s\"])," \
+							" deepcopy(config[\"dataset_features\"]))" % \
+							(config["run"]["model"], config["run"]["model"])
+				exec (exec_string)
 
 			if cmd_args.cuda == '1':
-				#print('** main.py line 256: classifier_model cuda')
 				classifier_model = classifier_model.cuda()
 
 			# Define back propagation optimizer
@@ -285,12 +469,16 @@ if __name__ == '__main__':
 				classifier_model.train()
 
 				# Calculate training loss
-				avg_loss = loop_dataset(
-					train_graph_fold, classifier_model,
-					train_idxes, config, dataset_features,
+				if config["run"]["model"]=='DFScodeRNN_cls':
+					avg_loss = loop_dataset_DFSRNN(
+					train_graph_fold, graph_label_list, classifier_model,
+					config, args, dataset_features,
 					optimizer=optimizer)
-
-				sys.exit()
+				else:
+					avg_loss = loop_dataset(
+						train_graph_fold, classifier_model,
+						train_idxes, config, dataset_features,
+						optimizer=optimizer)
 
 				# Print training results for epoch
 				print('\033[92m'
@@ -307,7 +495,13 @@ if __name__ == '__main__':
 				classifier_model.eval()
 
 				# Calculate test loss
-				test_loss = loop_dataset(
+
+				if config["run"]["model"]=='DFScodeRNN_cls':
+					test_loss = loop_dataset_DFSRNN(
+					test_graph_fold, graph_label_list, classifier_model,
+					config, args, dataset_features)
+				else:
+					test_loss = loop_dataset(
 					test_graph_fold, classifier_model,
 					test_idxes, config, dataset_features)
 
@@ -332,10 +526,10 @@ if __name__ == '__main__':
 			fold_number += 1
 
 		# Save all models
-		print("Saving trained model %s for dataset %s" %
-			  (dataset_features["name"], config["run"]["model"]))
-		torch.save(model_list, "tmp/saved_models/%s_%s_%s_%s.pth" % \
-				   (dataset_features["name"],config["run"]["model"],run_hash,model_hash))
+		# print("Saving trained model %s for dataset %s" %
+		# 	  (dataset_features["name"], config["run"]["model"]))
+		# torch.save(model_list, "tmp/saved_models/%s_%s_%s_%s.pth" % \
+		# 		   (dataset_features["name"],config["run"]["model"],run_hash,model_hash))
 
 	# Report average performance metrics
 	run_statistics_string += "Accuracy (avg): %s " % \
@@ -462,16 +656,16 @@ if __name__ == '__main__':
 	# Save dataset features and run statistics to log
 	current_datetime = datetime.datetime.now().strftime("%d%m%Y-%H%M%S")
 	log_file_name = "%s_%s_datetime_%s.txt" %\
-				   (dataset_features["name"],
+				   (config["run"]["dataset"],
 					config["run"]["model"],
 					str(current_datetime))
 
 	# Save log to text file
 	with open("results/logs/%s" % log_file_name, "w") as f:
-		if "dataset_info" in dataset_features.keys():
-			dataset_info = dataset_features["dataset_info"] + "\n"
-		else:
-			dataset_info = ""
+		# if "dataset_info" in dataset_features.keys():
+		# 	dataset_info = dataset_features["dataset_info"] + "\n"
+		# else:
+		dataset_info = ""
 		f.write(dataset_info + run_statistics_string)
 
 

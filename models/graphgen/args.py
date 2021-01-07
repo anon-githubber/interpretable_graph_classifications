@@ -21,7 +21,7 @@ class Args:
         self.clean_temp = False
 
         # Whether to use tensorboard for logging
-        self.log_tensorboard = True
+        self.log_tensorboard = False
 
         # Algorithm Version - # Algorithm Version - GraphRNN  | DFScodeRNN (GraphGen) | DGMG (Deep GMG)
         self.note = 'DFScodeRNN_cls'
@@ -70,7 +70,7 @@ class Args:
         # Specific to GraphRNN | DFScodeRNN
         self.num_layers = 1  # Layers of rnn
 
-        self.batch_size = 32  # normal: 32, and the rest should be changed accordingly
+        self.batch_size = 1  # normal: 32, and the rest should be changed accordingly
 
         # Specific to DGMG
         # Model parameters
@@ -91,7 +91,8 @@ class Args:
         self.gradient_clipping = True
 
         # Output config
-        self.dir_input = os.environ.get('GraphgenResultsPath')
+        self.dir_input = os.environ.get('GRAPHGEN_RESULTS_PATH')
+        self.base_path = None
         self.model_save_path = self.dir_input + 'model_save/'
         self.tensorboard_path = self.dir_input + 'tensorboard/'
         self.dataset_path = self.dir_input + 'datasets/'
@@ -114,6 +115,7 @@ class Args:
         self.current_dataset_path = None
         self.current_processed_dataset_path = None
         self.current_min_dfscode_path = None
+        self.min_dfscode_tensor_path = None
         self.current_temp_path = self.temp_path + self.fname + '_' + self.time + '/'
 
         # Model load parameters

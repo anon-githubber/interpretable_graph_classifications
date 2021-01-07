@@ -4,6 +4,10 @@ from torch.utils.data import Dataset
 from dfscode.dfs_wrapper import get_min_dfscode
 from datasets.preprocess import dfscode_to_tensor
 
+def load_dfscode_tensor(tensor_path, graph_id):
+    with open(tensor_path + 'graph' + str(graph_id) + '.dat', 'rb') as f:
+            dfscode_tensors = pickle.load(f)
+    return dfscode_tensors
 
 class Graph_DFS_code_from_file(Dataset):
     """
@@ -34,8 +38,7 @@ class Graph_DFS_code_from_file(Dataset):
         graph_id = self.graph_list[idx][0]
         graph_label = self.graph_list[idx][1]
 
-        with open(self.dataset_path + 'graph' + str(graph_id) + '.dat', 'rb') as f:
-            dfscode_tensors = pickle.load(f)
+        dfscode_tensors = load_dfscode_tensor(self.dataset_path, graph_id)
 
         # print('data.py: graph_id: ', graph_id)
         # print('data.py: dfscode_tensors: ', dfscode_tensors)

@@ -17,17 +17,45 @@ from sklearn.model_selection import StratifiedKFold
 import sys
 import os
 
-import torch
-torch.set_printoptions(threshold=10_000)
+# import torch
+# torch.set_printoptions(threshold=10_000)
+
+args = Args()
+args = args.update_args()
+
+# TODO 4
+# args fetch info from config.yml also
+
+def get_feature_map(graph_label_list):
+    fearure_map_path = os.path.join(args.base_path, 'graphs', 'map.dict')
+    if not os.path.exists(fearure_map_path):
+        os.symlink(os.path.join(os.environ.get('MUTAG_LABEL_PATH'), 'graphs' ,'map.dict'), fearure_map_path)
+    with open(fearure_map_path, 'rb') as f:
+        feature_map = pickle.load(f)
+    if args.note == 'DFScodeRNN_cls':
+        feature_map['label_size'] = len(set(graph_label_list))
+    return feature_map
+
+def get_graph_list():
+    return create_graphs(args)
+
+def get_graph_label_list():
+    mutag_label_path = os.path.join(args.base_path, 'graph_label.dat')
+    if not os.path.exists(mutag_label_path):
+        os.symlink(os.path.join(os.environ.get('MUTAG_LABEL_PATH'), 'graph_label.dat'), mutag_label_path)
+    with open(mutag_label_path, 'rb') as f:
+        graph_label_list = pickle.load(f)
+    return graph_label_list
+
+def get_model(feature_map):
+    return create_model(args, feature_map)
+
 
 if __name__ == '__main__':
 
-    args = Args()
-    args = args.update_args()
-
     create_dirs(args)
 
-    random.seed(123)
+    # random.seed(123)
 
     # graphs = create_graphs(args)
 
@@ -35,10 +63,13 @@ if __name__ == '__main__':
     # graphs_train = graphs[: int(0.80 * len(graphs))]
     # graphs_validate = graphs[int(0.80 * len(graphs)): int(0.90 * len(graphs))]
 
-    graph_list = create_graphs(args)
+    graph_list = get_graph_list()
 
-    with open(os.path.join(args.dataset_path, args.graph_type, 'graph_label.dat'), 'rb') as f:
-        graph_label_list = pickle.load(f)
+    graph_label_list = get_graph_label_list()
+
+    feature_map = get_feature_map()
+
+    model = get_model(feature_map)
 
     # print('graph_list: {}'.format(graph_list))
     # print('graph_label_list: {}'.format(graph_label_list))
@@ -63,17 +94,9 @@ if __name__ == '__main__':
     print('Graph type:', args.graph_type)
     # print('Training set: {}, Validation set: {}'.format(
     #     len(graphs_train), len(graphs_validate)))
-    print('Training set: {}'.format(
-        len(graphs_train[0])))
+    print('Training set: {}'.format(len(graphs_train[0])))
 
-    # Loading the feature map
-    with open(args.current_dataset_path + 'map.dict', 'rb') as f:
-        feature_map = pickle.load(f)
-
-    if args.note == 'DFScodeRNN_cls':
-        feature_map['label_size'] = len(set(graph_label_list))
-        print('Number of labels: {}'.format(feature_map['label_size']))
-
+    print('Number of labels: {}'.format(feature_map['label_size']))
     print('Max number of nodes: {}'.format(feature_map['max_nodes']))
     print('Max number of edges: {}'.format(feature_map['max_edges']))
     print('Min number of nodes: {}'.format(feature_map['min_nodes']))
@@ -143,8 +166,6 @@ if __name__ == '__main__':
         dataloader_validate = DataLoader(
             dataset_validate, batch_size=args.batch_size, shuffle=False,
             num_workers=args.num_workers)
-
-    model = create_model(args, feature_map)
 
     # train(args, dataloader_train, model, feature_map, dataloader_validate)
     train(args, dataloader_train, model, feature_map)

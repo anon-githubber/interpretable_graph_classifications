@@ -4,7 +4,7 @@ general:
   batch_size: 1
   extract_features: False
 run:
-  num_epochs : 50
+  num_epochs : 1
   learning_rate : 0.0001
   seed: 1800
   k_fold: 5
@@ -34,6 +34,8 @@ GNN_models:
     assign_ratio: 0.25
     number_of_pooling: 1
     concat_tensors: False
+  DFScodeRNN_cls:
+    dummy: 0
 interpretability_methods:
   DeepLIFT:
     enabled: False
