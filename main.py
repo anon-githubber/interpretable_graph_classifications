@@ -52,8 +52,8 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 	from models.graphgen.graphgen_cls.data import load_dfscode_tensor
 	from models.graphgen.graphgen_cls.train import get_RNN_input_from_dfscode_tensor
 
-	print('*** 4 len(sample_idxes): ', len(sample_idxes))
-	print('*** 5 sample_idxes: ', sample_idxes)
+	# print('*** 4 len(sample_idxes): ', len(sample_idxes))
+	# print('*** 5 sample_idxes: ', sample_idxes)
 	# print('*** 6 config: ', config)
 
 	n_samples = 0
@@ -67,13 +67,13 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 	total_iters = (len(sample_idxes) + (bsize - 1) *
 				   (optimizer is None)) // bsize
 	# pbar = tqdm(range(total_iters), unit='batch')
-	print(f'*** 6 total_iters: {total_iters}')
+	# print(f'*** 6 total_iters: {total_iters}')
 
 	# Create temporary timer dict to store timing data for this loop
 	temp_timing_dict = {"forward": [], "backward": []}
 
 	# init classifier
-	print(f'*** 7 classifier: {classifier}')
+	# print(f'*** 7 classifier: {classifier}')
 	classifier.dfs_code_rnn.init_hidden(batch_size=bsize)
 
 	# For each batch
@@ -83,14 +83,14 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 		batch_graph_tensors = []
 		for idx in selected_idx:
 			dfscode_tensor = load_dfscode_tensor(args.min_dfscode_tensor_path, idx)
-			print(f'*** 7 dfscode_tensor: {dfscode_tensor}')
+			# print(f'*** 7 dfscode_tensor: {dfscode_tensor}')
 			
 			batch_graph_tensors.append(get_RNN_input_from_dfscode_tensor(dfscode_tensor, bsize, args, dataset_features))
 			# print(f'*** 7 batch_graph_tensors: {batch_graph_tensors}')
 
 		batch_graph_tensors = torch.cat(batch_graph_tensors).unsqueeze(0)
-		print(f'*** 7 batch_graph_tensors: {batch_graph_tensors}')
-		print(f'*** 7 batch_graph_tensors.size(): {batch_graph_tensors.size()}')
+		# print(f'*** 7 batch_graph_tensors: {batch_graph_tensors}')
+		# print(f'*** 7 batch_graph_tensors.size(): {batch_graph_tensors.size()}')
 
 		targets = [graph_label_list[idx] for idx in selected_idx]
 		all_targets += targets
@@ -116,46 +116,44 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 		# dfscode_rnn_output = classifier.dfs_code_rnn(batch_graph_tensors)
 		# output = classifier.output_layer(dfscode_rnn_output)
 		output = classifier(batch_graph_tensors)
-		output = torch.squeeze(output).unsqueeze(0)
 		#print('** main.py line 88: output.is_cuda: ', output.is_cuda)
 		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
 
-		# TODO 5 
-		# softmax, logits, prob, output
+		# TODO 5 (solved)
+		# softmax在哪加？ logits, prob怎么处理， 注意output是两个
 
-		# logits = F.log_softmax(output, dim=1)
-		# prob = F.softmax(logits, dim=1)
-		logits = prob = output
-		print(f'output: {output}')
-		print(f'logits: {logits}')
-		print(f'prob: {prob}')
-		print(f'labels: {labels}')
-		logits = logits.float()
-		labels = labels.float()
+		# print(f'output: {output}')
 
-		loss = F.binary_cross_entropy(logits, labels)
-		loss.backward()
+		
+		# sys.exit()
 
-		print('loss.backward()')
-		sys.exit()
-
-		loss = F.binary_cross_entropy(logits.float(), labels.float())
-		pred = torch.tensor(1) if logits.squeeze()>0 else torch.tensor(0)
-		# loss = F.nll_loss(logits, labels)
-		# pred = logits.data.max(1, keepdim=True)[1]
-		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() /\
-			  float(labels.size()[0])
-		all_scores.append(prob.cpu().detach())  # for classification
+		logits = F.log_softmax(output, dim=1)
+		prob = F.softmax(logits, dim=1)
+		
+		# print(f'output: {output}')
+		# print(f'logits: {logits}')
+		# print(f'prob: {prob}')
+		# print(f'labels: {labels}')
+		
+		# logits = logits.float()
+		# labels = labels.float()
+		# loss = F.binary_cross_entropy(logits[0][0].unsqueeze(0), labels)
+		loss = F.nll_loss(logits, labels)
+		# loss.backward(retain_graph=True)
 
 		# Back propagate loss
 		if optimizer is not None:
-			with torch.autograd.set_detect_anomaly(True):
-				optimizer.zero_grad()
-				start_backward = time.perf_counter()
-				loss.backward(retain_graph=True)
-				temp_timing_dict["backward"].append(
-					time.perf_counter() - start_backward)
-				optimizer.step()
+			# optimizer.zero_grad()
+			start_backward = time.perf_counter()
+			loss.backward(retain_graph=True)
+			temp_timing_dict["backward"].append(
+				time.perf_counter() - start_backward)
+			# optimizer.step()
+
+		pred = logits.data.max(1, keepdim=True)[1]
+		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() /\
+			  float(labels.size()[0])
+		all_scores.append(prob.cpu().detach()) 
 
 		loss = loss.data.cpu().detach().numpy()
 		# print('loss: %0.5f acc: %0.5f' % (loss, acc))
@@ -164,23 +162,29 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 		n_samples += len(selected_idx)
 
 	if optimizer is None:
-		assert n_samples == len(g_list)
+		assert n_samples == len(sample_idxes)
 
 	# Calculate average loss and report performance metrics
 	total_loss = np.array(total_loss)
 	avg_loss = np.sum(total_loss, 0) / n_samples
+	# print(f'\n\n\navg_loss: {avg_loss}')
+	# print(f'type(avg_loss): {type(avg_loss)}')
+	# print(f'all_targets: {all_targets}')
+	# print(f'type(all_targets): {type(all_targets)}')
+	# print(f'all_scores: {all_scores}')
+	# print(f'type(all_scores): {type(all_scores)}')
 	roc_auc, prc_auc = auc_scores(all_targets, all_scores)
 	avg_loss = np.concatenate((avg_loss, [roc_auc], [prc_auc]))
 
 	# Append loop average to global timer tracking list.
 	# Only for training phase
-	if optimizer is not None:
-		timing_dict["forward"].append(
-			sum(temp_timing_dict["forward"])/
-			len(temp_timing_dict["forward"]))
-		timing_dict["backward"].append(
-			sum(temp_timing_dict["backward"])/
-			len(temp_timing_dict["backward"]))
+	# if optimizer is not None:
+	# 	timing_dict["forward"].append(
+	# 		sum(temp_timing_dict["forward"])/
+	# 		len(temp_timing_dict["forward"]))
+	# 	timing_dict["backward"].append(
+	# 		sum(temp_timing_dict["backward"])/
+	# 		len(temp_timing_dict["backward"]))
 	
 	return avg_loss
 
@@ -273,6 +277,11 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 		total_loss.append( np.array([loss, acc]) * len(selected_idx))
 
 		n_samples += len(selected_idx)
+		# print(f'output: {output}')
+		# print(f'logits: {logits}')
+		# print(f'prob: {prob}')
+		# print(f'labels: {labels}')
+		# sys.exit()
 
 	if optimizer is None:
 		assert n_samples == len(sample_idxes)
@@ -282,6 +291,13 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 	avg_loss = np.sum(total_loss, 0) / n_samples
 	roc_auc, prc_auc = auc_scores(all_targets, all_scores)
 	avg_loss = np.concatenate((avg_loss, [roc_auc], [prc_auc]))
+	# print(f'\n\n\navg_loss: {avg_loss}')
+	# print(f'type(avg_loss): {type(avg_loss)}')
+	# print(f'all_targets: {all_targets}')
+	# print(f'type(all_targets): {type(all_targets)}')
+	# print(f'all_scores: {all_scores}')
+	# print(f'type(all_scores): {type(all_scores)}')
+	# print(f'all_scores.size(): {all_scores.size()}')
 
 	# Append loop average to global timer tracking list.
 	# Only for training phase

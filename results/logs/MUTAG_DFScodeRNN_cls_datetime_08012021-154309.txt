@@ -1,0 +1,16 @@
+Run statistics: 
+==== Configuration Settings ====
+== Run Settings ==
+Model: DFScodeRNN_cls, Dataset: MUTAG
+num_epochs: 1
+learning_rate: 0.0001
+seed: 1800
+k_fold: 5
+model: DFScodeRNN_cls
+dataset: MUTAG
+
+== Model Settings and results ==
+dummy: 0
+
+Accuracy (avg): 0.40526 ROC_AUC (avg): 0.26744 PRC_AUC (avg): 0.61253 
+

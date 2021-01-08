@@ -163,6 +163,10 @@ class RNN(nn.Module):
         if self.rnn_type == 'GRU':
             # h0
             self.hidden =  torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device)
+
+            # TODO 7
+            # init hidden when create the model instead of manually init
+
         elif self.rnn_type == 'LSTM':
             # (h0, c0)
             self.hidden = (torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device),
@@ -183,8 +187,8 @@ class RNN(nn.Module):
         
         # print('model.py: output.size(): ', output.size())
 
-        print(f'output: {output}')
-        print(f'output.size() {output.size()}')
+        # print(f'output: {output}')
+        # print(f'output.size() {output.size()}')
 
         # print('model.py: output: ', output)
         # print('model.py: output.size(): ', output.size())
@@ -256,8 +260,8 @@ def create_model(args, feature_map):
     #     input_size=args.hidden_size_dfscode_rnn, embedding_size=args.embedding_size_vertex_output,
     #     output_size=len_node_vec, dropout=args.dfscode_rnn_dropout).to(device=args.device)
 
-
-    output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
+    output_size = feature_map['label_size']
+    # output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
     # output_layer = MLP_layer(
     #         input_size=args.hidden_size_dfscode_rnn, 
     #         output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
