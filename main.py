@@ -39,6 +39,8 @@ print('\n\ntorch.cuda.is_available(): ', torch.cuda.is_available(), '\n\n')
 timing_dict = {"forward": [], "backward": []}
 run_statistics_string = "Run statistics: \n"
 
+
+
 def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args, dataset_features, optimizer=None, scheduler=None):
 	'''
 	:param g_list: list of graphs to trainover
@@ -62,20 +64,62 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 	all_scores = []
 	total_loss = []
 
+
+	for _, net in classifier.items():
+		net.train()
+
+	'''
+
+	for i in range(100):
+
+		idx=i
+		dfscode_tensor = load_dfscode_tensor(args.min_dfscode_tensor_path, idx)
+				# print(f'*** 7 dfscode_tensor: {dfscode_tensor}')
+				
+		dfscode_tensor = get_RNN_input_from_dfscode_tensor(dfscode_tensor, 1, args, dataset_features)
+
+		print(dfscode_tensor)
+		input = dfscode_tensor.unsqueeze(0).cuda()
+
+		classifier['dfs_code_rnn'].init_hidden(batch_size=1)
+
+		# input = torch.cat(dfscode_tensor)
+		# input = input.unsqueeze(0)
+
+		output = classifier['dfs_code_rnn'](input)
+		output = classifier['output_layer'](output)
+
+		for _, net in classifier.items():
+			net.zero_grad()
+		loss = F.binary_cross_entropy(output.float()[0][:1], torch.tensor([1]).float().cuda())
+		# loss = F.nll_loss(output, labels)
+		loss.backward()
+		for _, net in classifier.items():
+			clip_grad_value_(net.parameters(), 1.0)
+		for _, opt in optimizer.items():
+			opt.step()
+		for _, sched in scheduler.items():
+			sched.step()
+
+		print('done: ', i)
+
+	sys.exit()
+
+	'''
 	# Determine batch size and initialise progress bar (pbar)
-	bsize = max(config["general"]["batch_size"], 1)
+	# bsize = max(config["general"]["batch_size"], 1)
+	assert config["general"]["batch_size"]==1
+	assert args.batch_size==1
+	bsize = 1
+	
 
 	total_iters = (len(sample_idxes) + (bsize - 1) *
 				   (optimizer is None)) // bsize
-	# pbar = tqdm(range(total_iters), unit='batch')
 	# print(f'*** 6 total_iters: {total_iters}')
 
 	# Create temporary timer dict to store timing data for this loop
 	temp_timing_dict = {"forward": [], "backward": []}
-
-	# init classifier
-	# print(f'*** 7 classifier: {classifier}')
-	classifier['dfs_code_rnn'].init_hidden(batch_size=bsize)
+	
 
 	# For each batch
 	for pos in range(total_iters):
@@ -89,9 +133,11 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 			batch_graph_tensors.append(get_RNN_input_from_dfscode_tensor(dfscode_tensor, bsize, args, dataset_features))
 			# print(f'*** 7 batch_graph_tensors: {batch_graph_tensors}')
 
-		batch_graph_tensors = torch.cat(batch_graph_tensors).unsqueeze(0)
-		# print(f'*** 7 batch_graph_tensors: {batch_graph_tensors}')
-		# print(f'*** 7 batch_graph_tensors.size(): {batch_graph_tensors.size()}')
+		input = torch.cat(batch_graph_tensors)
+		input = input.unsqueeze(0)
+		
+		# print(f'*** 7 input: {input}')
+		# print(f'*** 7 input.size(): {input.size()}')
 
 		targets = [graph_label_list[idx] for idx in selected_idx]
 		all_targets += targets
@@ -103,81 +149,49 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 			labels[i] = targets[i]
 
 		if cmd_args.cuda == '1':
-			batch_graph_tensors = batch_graph_tensors.cuda()
+			input = input.cuda()
 			labels = labels.cuda()
+
+		## important!!
+		classifier['dfs_code_rnn'].init_hidden(batch_size=bsize)
 
 		# Perform training
 		start_forward = time.perf_counter()
 
-		# print('*** 7 node_feat: ', node_feat)
-		# print('*** 8 n2n: ', n2n)
-
-		# sys.exit()
-
-		# dfscode_rnn_output = classifier.dfs_code_rnn(batch_graph_tensors)
-		# output = classifier.output_layer(dfscode_rnn_output)
-		print(f'batch_graph_tensors.size(): {batch_graph_tensors.size()}')
-		output = classifier['dfs_code_rnn'](batch_graph_tensors)
-		print(f'output.size(): {output.size()}')
+		output = classifier['dfs_code_rnn'](input)
+		# print(f'output from rnn - size(): {output.size()}')
 		output = classifier['output_layer'](output)
-		print(f'output.size(): {output.size()}')
-		print(f'labels: {labels}')
+		# print(f'output from mlp - : {output}')
+		# print(f'output from mlp - size(): {output.size()}')
+		# print(f'labels: {labels}')
 
-		with torch.autograd.detect_anomaly():
-			loss = F.binary_cross_entropy(output.float(), labels.float())
-			# loss = F.nll_loss(output, labels)
-			loss.backward(retain_graph=True)
+		loss = F.nll_loss(output, labels)
+
+		if optimizer is not None:
+			for _, net in classifier.items():
+				net.zero_grad()
+			# loss = F.binary_cross_entropy(output.float()[0][:1], labels.float())
+			start_backward = time.perf_counter()
+			loss.backward()
+			temp_timing_dict["backward"].append(time.perf_counter() - start_backward)
 			for _, net in classifier.items():
 				clip_grad_value_(net.parameters(), 1.0)
 			for _, opt in optimizer.items():
 				opt.step()
+			for _, sched in scheduler.items():
+				sched.step()
 
 		#print('** main.py line 88: output.is_cuda: ', output.is_cuda)
 		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
 
-		# TODO 5
-		# softmax在哪加？ logits, prob怎么处理， 注意output是两个
-
-		# logits = F.log_softmax(output, dim=1)
-		# prob = F.softmax(logits, dim=1)
+		logits = F.log_softmax(output, dim=1)
+		prob = F.softmax(logits, dim=1)
 		
 		# print(f'output: {output}')
 		# print(f'logits: {logits}')
 		# print(f'prob: {prob}')
 		# print(f'labels: {labels}')
 		
-		# logits = logits.float()
-		# labels = labels.float()
-		# loss = F.binary_cross_entropy(logits[0][0].unsqueeze(0), labels)
-
-		
-		# for _, sched in scheduler.items():
-		# 	sched.step()
-		print('done')
-		# sys.exit()
-		'''
-		# Back propagate loss
-		if optimizer is not None:
-			# optimizer.zero_grad()
-			# start_backward = time.perf_counter()
-			loss.backward(retain_graph=True)
-			# temp_timing_dict["backward"].append(
-			# 	time.perf_counter() - start_backward)
-			# optimizer.step()
-			# Clipping gradients
-			if args.gradient_clipping:
-				for _, net in classifier.items():
-					clip_grad_value_(net.parameters(), 1.0)
-
-			# Update params of rnn and mlp
-			for _, opt in optimizer.items():
-				opt.step()
-
-			for _, sched in scheduler.items():
-				sched.step()
-		'''
-
-		'''
 		pred = logits.data.max(1, keepdim=True)[1]
 		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() /\
 			  float(labels.size()[0])
@@ -203,19 +217,19 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 	# print(f'type(all_scores): {type(all_scores)}')
 	roc_auc, prc_auc = auc_scores(all_targets, all_scores)
 	avg_loss = np.concatenate((avg_loss, [roc_auc], [prc_auc]))
-	'''
+	
 	# Append loop average to global timer tracking list.
 	# Only for training phase
-	# if optimizer is not None:
-	# 	timing_dict["forward"].append(
-	# 		sum(temp_timing_dict["forward"])/
-	# 		len(temp_timing_dict["forward"]))
-	# 	timing_dict["backward"].append(
-	# 		sum(temp_timing_dict["backward"])/
-	# 		len(temp_timing_dict["backward"]))
+	if optimizer is not None:
+		timing_dict["forward"].append(
+			sum(temp_timing_dict["forward"])/
+			len(temp_timing_dict["forward"]))
+		timing_dict["backward"].append(
+			sum(temp_timing_dict["backward"])/
+			len(temp_timing_dict["backward"]))
 	
-	# return avg_loss
-	return (0,0,0,0)
+	return avg_loss
+
 
 def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, optimizer=None):
 	'''
@@ -379,10 +393,17 @@ if __name__ == '__main__':
 		# import graphgen functions, replace args
 		from models.graphgen.main import *
 
+
+		# 在这个script里面，graphgen默认用cls模式，和已生成好的tensor
+		args.used_in = 'cls'
+		args.produce_graphs = False 
+		args.produce_min_dfscodes = False
+		args.produce_min_dfscode_tensors = False
+
 		graph_list = get_graph_list()
 		graph_label_list = get_graph_label_list()
 
-		
+
 		# TODO 2
 		# 统一 dataset features 和 feature map, 因为后面会用到
 		dataset_features = get_feature_map(graph_label_list)

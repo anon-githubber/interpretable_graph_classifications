@@ -112,7 +112,7 @@ class RNN(nn.Module):
 
     def __init__(
         self, input_size, embedding_size, hidden_size, num_layers, rnn_type='GRU',
-        dropout=0, output_size=None, output_embedding_size=None,
+        dropout=0, output_size=None, output_embedding_size=None, batch_size=1,
         device=torch.device('cpu')
     ):
         super(RNN, self).__init__()
@@ -164,8 +164,6 @@ class RNN(nn.Module):
             # h0
             self.hidden =  torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device)
 
-            # TODO 7
-            # init hidden when create the model instead of manually init
 
         elif self.rnn_type == 'LSTM':
             # (h0, c0)
@@ -173,9 +171,9 @@ class RNN(nn.Module):
                     torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device))
 
     def forward(self, input, input_len=None):
-        print('model.py: input.size(): ', input.size())
+        # print('model.py: input.size(): ', input.size())
         input = self.input(input)
-        print('model.py: embedding.size(): ', input.size())
+        # print('model.py: embedding.size(): ', input.size())
         # input = self.relu(input)
 
         # if input_len is not None:
@@ -187,9 +185,9 @@ class RNN(nn.Module):
 
         output, self.hidden = self.rnn(input, self.hidden)
         
-        print('model.py: output.size(): ', output.size())
-        print('model.py: len(self.hidden): ', len(self.hidden))
-        print('model.py: self.hidden[0].size(): ', self.hidden[0].size())
+        # print('model.py: output.size(): ', output.size())
+        # print('model.py: len(self.hidden): ', len(self.hidden))
+        # print('model.py: self.hidden[0].size(): ', self.hidden[0].size())
 
         # print(f'output: {output}')
         # print(f'output.size() {output.size()}')
@@ -242,7 +240,7 @@ def create_model(args, feature_map):
     dfs_code_rnn = RNN(
         input_size=feature_len, embedding_size=args.embedding_size_dfscode_rnn,
         hidden_size=args.hidden_size_dfscode_rnn, num_layers=args.num_layers,
-        rnn_type=args.rnn_type, dropout=args.dfscode_rnn_dropout, output_size=None,
+        rnn_type=args.rnn_type, dropout=args.dfscode_rnn_dropout, output_size=None, batch_size=args.batch_size, 
         device=args.device).to(device=args.device)
 
     # output_timestamp1 = MLP_layer(

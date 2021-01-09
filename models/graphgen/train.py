@@ -92,10 +92,10 @@ def train_epoch(
             summary_writer.add_scalar('{} {} Loss/train batch'.format(
                 args.note, args.graph_type), loss, batch_id + batch_count * epoch)
 
-        print('\n\n\nparam.data:')
-        for param in model['output_layer'].parameters():
-            print(param.data)
-        print('\n\n\nparam.data:')
+        # print('\n\n\nparam.data:')
+        # for param in model['output_layer'].parameters():
+        #     print(param.data)
+        # print('\n\n\nparam.data:')
 
     y_preds = [1. if n >= 0.5 else 0. for n in y_preds]
     # print('y_trues: ', y_trues)
