@@ -98,7 +98,7 @@ def evaluate_loss(args, model, data, feature_map):
 
     if args.loss_type == 'BCE':
         y_pred = model['output_layer'](dfscode_rnn_output)
-        y_pred = torch.squeeze(y_pred)
+        # y_pred = torch.squeeze(y_pred)
 
         # Cleaning the padding i.e setting it to zero
         # x_pred = pack_padded_sequence(x_pred, x_len + 1, batch_first=True)

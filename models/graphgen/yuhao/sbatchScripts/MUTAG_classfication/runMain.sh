@@ -11,13 +11,14 @@ source /home/FYP/heyu0012/.bashrc
 conda activate graphgen
 conda env list
 
-GraphgenResultsPath='/home/FYP/heyu0012/results/graphgen/DfsRNN_MUTAG_classification/'
-mkdir -p $GraphgenResultsPath
-export GraphgenResultsPath=$GraphgenResultsPath
-export PATH=/home/FYP/heyu0012/projects/graphgen/bin:$PATH
+GRAPHGEN_RESULTS_PATH='/home/FYP/heyu0012/results/graphgen/temp/'
+mkdir -p $GRAPHGEN_RESULTS_PATH
+export GRAPHGEN_RESULTS_PATH=$GRAPHGEN_RESULTS_PATH
 
-ROOT=/home/FYP/heyu0012/projects/graphgen
+ROOT=/home/FYP/heyu0012/projects/interpretable_graph_classifications/models/graphgen
+export PATH=${ROOT}/bin:$PATH
+
 cd $ROOT
-cp -r ${ROOT}/datasets $GraphgenResultsPath
+cp -r ${ROOT}/datasets $GRAPHGEN_RESULTS_PATH
 # ls $GraphgenResultsPath/datasets
 python main.py

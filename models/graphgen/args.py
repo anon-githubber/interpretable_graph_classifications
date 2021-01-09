@@ -33,11 +33,11 @@ class Args:
 
         # Whether to produce networkx format graphs for real datasets
         # alr genetrated (Yuhao)
-        self.produce_graphs = False 
+        self.produce_graphs = True 
         # Whether to produce min dfscode and write to files
-        self.produce_min_dfscodes = False
+        self.produce_min_dfscodes = True
         # Whether to map min dfscodes to tensors and save to files
-        self.produce_min_dfscode_tensors = False
+        self.produce_min_dfscode_tensors = True
 
         # if none, then auto calculate
         self.max_prev_node = None  # max previous node that looks back for GraphRNN
@@ -55,12 +55,12 @@ class Args:
         # Model parameters
         # self.hidden_size_dfscode_rnn = 256  # hidden size for dfscode RNN
         self.hidden_size_dfscode_rnn = 4
-        self.embedding_size_dfscode_rnn = 8  # input size for dfscode RNN
+        self.embedding_size_dfscode_rnn =8  # input size for dfscode RNN
         # the size for vertex output embedding
         # self.embedding_size_timestamp_output = 512
         # self.embedding_size_vertex_output = 512  # the size for vertex output embedding
         # self.embedding_size_edge_output = 512  # the size for edge output embedding
-        self.dfscode_rnn_dropout = 0.2  # Dropout layer in between RNN layers
+        self.dfscode_rnn_dropout = 0  # Dropout layer in between RNN layers
         self.loss_type = 'BCE'
         self.weights = False
 
@@ -123,6 +123,8 @@ class Args:
         self.load_model_path = ''
         self.load_device = torch.device('cuda:0')
         self.epochs_end = 10000
+
+        self.used_in = 'gen' # used in ['cls', 'gen'], decide the output layer
 
     def update_args(self):
         if self.load_model:

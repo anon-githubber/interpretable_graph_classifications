@@ -400,19 +400,21 @@ def create_graphs(args):
     min_dfscode_tensor_path = os.path.join(base_path, 'min_dfscode_tensors/')
     args.min_dfscode_tensor_path = min_dfscode_tensor_path
     # print('!!!')
-    # print(args.base_path)
-    # print(args.current_dataset_path)
-    # print(args.min_dfscode_path)
-    # print(min_dfscode_tensor_path)
+    print(f'args.base_path: {args.base_path}')
+    print(f'args.current_dataset_path: {args.current_dataset_path}')
+    print(f'args.min_dfscode_path: {args.min_dfscode_path}')
+    print(f'min_dfscode_tensor_path: {min_dfscode_tensor_path}')
 
-    if not os.path.exists(base_path):
-        os.makedirs(base_path)
+    if args.used_in=='cls':
+        
+        if not os.path.exists(base_path):
+            os.makedirs(base_path)
 
-    if not os.path.exists(args.current_dataset_path):
-        os.mkdir(args.current_dataset_path)
+        if not os.path.exists(args.current_dataset_path):
+            os.mkdir(args.current_dataset_path)
 
-    if not os.path.exists(min_dfscode_tensor_path):
-        os.symlink(os.environ.get('MUTAG_DFSTENSOR_PATH'), min_dfscode_tensor_path[:-1])
+        if not os.path.exists(min_dfscode_tensor_path):
+            os.symlink(os.environ.get('MUTAG_DFSTENSOR_PATH'), min_dfscode_tensor_path[:-1])
 
     if args.note == 'GraphRNN' or args.note == 'DGMG':
         args.current_processed_dataset_path = args.current_dataset_path
@@ -451,13 +453,11 @@ def create_graphs(args):
 
         print('Graphs produced', count)
 
-    # TODO 1
-    # 暂时comment掉, 之后要去掉
-
-    # Produce feature map
-    # feature_map = mapping(args.current_dataset_path,
-    #                       args.current_dataset_path + 'map.dict')
-    # print(f'feature_map: {feature_map}')
+    if args.used_in == 'gen':
+        # Produce feature map
+        feature_map = mapping(args.current_dataset_path,
+                            args.current_dataset_path + 'map.dict')
+        print(f'feature_map: {feature_map}')
 
     if (args.note in ['DFScodeRNN', 'DFScodeRNN_cls']) and args.produce_min_dfscodes:
         # Empty the directory

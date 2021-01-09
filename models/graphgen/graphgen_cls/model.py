@@ -19,13 +19,13 @@ class MLP_Softmax(nn.Module):
     def forward(self, input):
         return self.mlp(input)
 
-class MLP_Binary(nn.Module):
+class MLP_onelayer_sigmoid(nn.Module):
     """
     A deterministic linear output layer
     """
 
     def __init__(self, input_size, output_size, dropout=0):
-        super(MLP_Binary, self).__init__()
+        super(MLP_onelayer_sigmoid, self).__init__()
         self.mlp = nn.Sequential(
             MLP_onelayer(input_size, output_size, dropout),
             nn.Sigmoid()
@@ -173,7 +173,9 @@ class RNN(nn.Module):
                     torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device))
 
     def forward(self, input, input_len=None):
+        print('model.py: input.size(): ', input.size())
         input = self.input(input)
+        print('model.py: embedding.size(): ', input.size())
         # input = self.relu(input)
 
         # if input_len is not None:
@@ -185,7 +187,9 @@ class RNN(nn.Module):
 
         output, self.hidden = self.rnn(input, self.hidden)
         
-        # print('model.py: output.size(): ', output.size())
+        print('model.py: output.size(): ', output.size())
+        print('model.py: len(self.hidden): ', len(self.hidden))
+        print('model.py: self.hidden[0].size(): ', self.hidden[0].size())
 
         # print(f'output: {output}')
         # print(f'output.size() {output.size()}')
@@ -212,16 +216,16 @@ class RNN(nn.Module):
 #     def forward(self, x):
 #         return self.out(x)
 
-class SequentialModel(nn.Module):
-    def __init__(self, dfs_code_rnn, output_layer):
-        super(SequentialModel, self).__init__()
-        self.dfs_code_rnn = dfs_code_rnn
-        self.output_layer = output_layer
+# class SequentialModel(nn.Module):
+#     def __init__(self, dfs_code_rnn, output_layer):
+#         super(SequentialModel, self).__init__()
+#         self.dfs_code_rnn = dfs_code_rnn
+#         self.output_layer = output_layer
         
-    def forward(self, x):
-        out = self.dfs_code_rnn(x)
-        out = self.output_layer(out)
-        return out
+#     def forward(self, x):
+#         out = self.dfs_code_rnn(x)
+#         out = self.output_layer(out)
+#         return out
 
 def create_model(args, feature_map):
     max_nodes = feature_map['max_nodes']
@@ -229,9 +233,6 @@ def create_model(args, feature_map):
         feature_map['node_forward']) + 1, len(feature_map['edge_forward']) + 1
 
     feature_len = 2 * (max_nodes + 1) + 2 * (len_node_vec) + len_edge_vec
-
-    # MLP_layer = MLP_Binary
-    MLP_layer = MLP_onelayer
 
     # if args.loss_type == 'BCE':
     #     MLP_layer = MLP_Binary
@@ -260,26 +261,36 @@ def create_model(args, feature_map):
     #     input_size=args.hidden_size_dfscode_rnn, embedding_size=args.embedding_size_vertex_output,
     #     output_size=len_node_vec, dropout=args.dfscode_rnn_dropout).to(device=args.device)
 
-    output_size = feature_map['label_size']
-    # output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
-    # output_layer = MLP_layer(
-    #         input_size=args.hidden_size_dfscode_rnn, 
-    #         output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
+    if args.used_in=='cls':
+        MLP_layer = MLP_onelayer
+        output_size = feature_map['label_size']
+        # output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
+        # output_layer = MLP_layer(
+        #         input_size=args.hidden_size_dfscode_rnn, 
+        #         output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
 
-    output_layer = MLP_layer(
-            input_size=args.hidden_size_dfscode_rnn, 
-            output_size=output_size).to(device=args.device)
+        output_layer = MLP_layer(
+                input_size=args.hidden_size_dfscode_rnn, 
+                output_size=output_size).to(device=args.device)
 
-    # model = {
-    #     'dfs_code_rnn': dfs_code_rnn,
-    #     # 'output_timestamp1': output_timestamp1,
-    #     # 'output_timestamp2': output_timestamp2,
-    #     # 'output_vertex1': output_vertex1,
-    #     # 'output_vertex2': output_vertex2
-    #     'output_layer' : output_layer
-    # }
+    elif args.used_in=='gen':
+        MLP_layer = MLP_onelayer_sigmoid
+        output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
+        output_layer = MLP_layer(
+                input_size=args.hidden_size_dfscode_rnn, 
+                output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
+
+
+    model = {
+        'dfs_code_rnn': dfs_code_rnn,
+        # 'output_timestamp1': output_timestamp1,
+        # 'output_timestamp2': output_timestamp2,
+        # 'output_vertex1': output_vertex1,
+        # 'output_vertex2': output_vertex2
+        'output_layer' : output_layer
+    }
 
     # TODO 3
-    # 修改之前graphgen用model的代码,现在统一用SequentialModel
+    # 改了output layer, 以后跑graphgen的时候怎么换？
 
-    return SequentialModel(dfs_code_rnn, output_layer)
+    return model

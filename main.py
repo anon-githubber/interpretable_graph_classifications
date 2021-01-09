@@ -39,7 +39,7 @@ print('\n\ntorch.cuda.is_available(): ', torch.cuda.is_available(), '\n\n')
 timing_dict = {"forward": [], "backward": []}
 run_statistics_string = "Run statistics: \n"
 
-def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args, dataset_features, optimizer=None):
+def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args, dataset_features, optimizer=None, scheduler=None):
 	'''
 	:param g_list: list of graphs to trainover
 	:param classifier: the initialised classifier
@@ -51,6 +51,7 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 
 	from models.graphgen.graphgen_cls.data import load_dfscode_tensor
 	from models.graphgen.graphgen_cls.train import get_RNN_input_from_dfscode_tensor
+	from torch.nn.utils import clip_grad_value_
 
 	# print('*** 4 len(sample_idxes): ', len(sample_idxes))
 	# print('*** 5 sample_idxes: ', sample_idxes)
@@ -74,7 +75,7 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 
 	# init classifier
 	# print(f'*** 7 classifier: {classifier}')
-	classifier.dfs_code_rnn.init_hidden(batch_size=bsize)
+	classifier['dfs_code_rnn'].init_hidden(batch_size=bsize)
 
 	# For each batch
 	for pos in range(total_iters):
@@ -115,20 +116,30 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 
 		# dfscode_rnn_output = classifier.dfs_code_rnn(batch_graph_tensors)
 		# output = classifier.output_layer(dfscode_rnn_output)
-		output = classifier(batch_graph_tensors)
+		print(f'batch_graph_tensors.size(): {batch_graph_tensors.size()}')
+		output = classifier['dfs_code_rnn'](batch_graph_tensors)
+		print(f'output.size(): {output.size()}')
+		output = classifier['output_layer'](output)
+		print(f'output.size(): {output.size()}')
+		print(f'labels: {labels}')
+
+		with torch.autograd.detect_anomaly():
+			loss = F.binary_cross_entropy(output.float(), labels.float())
+			# loss = F.nll_loss(output, labels)
+			loss.backward(retain_graph=True)
+			for _, net in classifier.items():
+				clip_grad_value_(net.parameters(), 1.0)
+			for _, opt in optimizer.items():
+				opt.step()
+
 		#print('** main.py line 88: output.is_cuda: ', output.is_cuda)
 		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
 
-		# TODO 5 (solved)
+		# TODO 5
 		# softmax在哪加？ logits, prob怎么处理， 注意output是两个
 
-		# print(f'output: {output}')
-
-		
-		# sys.exit()
-
-		logits = F.log_softmax(output, dim=1)
-		prob = F.softmax(logits, dim=1)
+		# logits = F.log_softmax(output, dim=1)
+		# prob = F.softmax(logits, dim=1)
 		
 		# print(f'output: {output}')
 		# print(f'logits: {logits}')
@@ -138,18 +149,35 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 		# logits = logits.float()
 		# labels = labels.float()
 		# loss = F.binary_cross_entropy(logits[0][0].unsqueeze(0), labels)
-		loss = F.nll_loss(logits, labels)
-		# loss.backward(retain_graph=True)
 
+		
+		# for _, sched in scheduler.items():
+		# 	sched.step()
+		print('done')
+		# sys.exit()
+		'''
 		# Back propagate loss
 		if optimizer is not None:
 			# optimizer.zero_grad()
-			start_backward = time.perf_counter()
+			# start_backward = time.perf_counter()
 			loss.backward(retain_graph=True)
-			temp_timing_dict["backward"].append(
-				time.perf_counter() - start_backward)
+			# temp_timing_dict["backward"].append(
+			# 	time.perf_counter() - start_backward)
 			# optimizer.step()
+			# Clipping gradients
+			if args.gradient_clipping:
+				for _, net in classifier.items():
+					clip_grad_value_(net.parameters(), 1.0)
 
+			# Update params of rnn and mlp
+			for _, opt in optimizer.items():
+				opt.step()
+
+			for _, sched in scheduler.items():
+				sched.step()
+		'''
+
+		'''
 		pred = logits.data.max(1, keepdim=True)[1]
 		acc = pred.eq(labels.data.view_as(pred)).cpu().sum().item() /\
 			  float(labels.size()[0])
@@ -163,7 +191,7 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 
 	if optimizer is None:
 		assert n_samples == len(sample_idxes)
-
+	
 	# Calculate average loss and report performance metrics
 	total_loss = np.array(total_loss)
 	avg_loss = np.sum(total_loss, 0) / n_samples
@@ -175,7 +203,7 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 	# print(f'type(all_scores): {type(all_scores)}')
 	roc_auc, prc_auc = auc_scores(all_targets, all_scores)
 	avg_loss = np.concatenate((avg_loss, [roc_auc], [prc_auc]))
-
+	'''
 	# Append loop average to global timer tracking list.
 	# Only for training phase
 	# if optimizer is not None:
@@ -186,7 +214,8 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 	# 		sum(temp_timing_dict["backward"])/
 	# 		len(temp_timing_dict["backward"]))
 	
-	return avg_loss
+	# return avg_loss
+	return (0,0,0,0)
 
 def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, optimizer=None):
 	'''
@@ -350,7 +379,6 @@ if __name__ == '__main__':
 		# import graphgen functions, replace args
 		from models.graphgen.main import *
 
-
 		graph_list = get_graph_list()
 		graph_label_list = get_graph_label_list()
 
@@ -462,17 +490,25 @@ if __name__ == '__main__':
 			# load model
 			if config["run"]["model"]=='DFScodeRNN_cls':
 				classifier_model = get_model(dataset_features)
+				if cmd_args.cuda == '1':
+					classifier_model['dfs_code_rnn'] = classifier_model['dfs_code_rnn'].cuda()
+					classifier_model['output_layer'] = classifier_model['output_layer'].cuda()
 			else:
 				exec_string = "classifier_model = %s(deepcopy(config[\"GNN_models\"][\"%s\"])," \
 							" deepcopy(config[\"dataset_features\"]))" % \
 							(config["run"]["model"], config["run"]["model"])
 				exec (exec_string)
+				if cmd_args.cuda == '1':
+					classifier_model = classifier_model.cuda()
 
-			if cmd_args.cuda == '1':
-				classifier_model = classifier_model.cuda()
 
 			# Define back propagation optimizer
-			optimizer = optim.Adam(classifier_model.parameters(),
+			if config["run"]["model"]=='DFScodeRNN_cls':
+				from models.graphgen.train import get_optimizer, get_scheduler
+				optimizer = get_optimizer(classifier_model, args)
+				scheduler = get_scheduler(classifier_model, optimizer, args)
+			else:
+				optimizer = optim.Adam(classifier_model.parameters(),
 								   lr=config["run"]["learning_rate"])
 
 			train_idxes = list(range(len(train_graph_fold)))
@@ -482,15 +518,17 @@ if __name__ == '__main__':
 			# For each epoch:
 			for epoch in range(config["run"]["num_epochs"]):
 				# Set classifier to train mode
-				classifier_model.train()
-
+				
 				# Calculate training loss
 				if config["run"]["model"]=='DFScodeRNN_cls':
+					classifier_model['dfs_code_rnn'].train()
+					classifier_model['output_layer'].train()
 					avg_loss = loop_dataset_DFSRNN(
 					train_graph_fold, graph_label_list, classifier_model,
 					config, args, dataset_features,
-					optimizer=optimizer)
+					optimizer=optimizer, scheduler=scheduler)
 				else:
+					classifier_model.train()
 					avg_loss = loop_dataset(
 						train_graph_fold, classifier_model,
 						train_idxes, config, dataset_features,
@@ -508,15 +546,18 @@ if __name__ == '__main__':
 					avg_loss[2], avg_loss[3]))
 
 				# Set classifier to evaluation mode
-				classifier_model.eval()
+				
 
 				# Calculate test loss
 
 				if config["run"]["model"]=='DFScodeRNN_cls':
+					classifier_model['dfs_code_rnn'].eval()
+					classifier_model['output_layer'].eval()
 					test_loss = loop_dataset_DFSRNN(
 					test_graph_fold, graph_label_list, classifier_model,
 					config, args, dataset_features)
 				else:
+					classifier_model.eval()
 					test_loss = loop_dataset(
 					test_graph_fold, classifier_model,
 					test_idxes, config, dataset_features)

@@ -13,6 +13,21 @@ from sklearn.metrics import accuracy_score
 
 import sys
 
+def get_optimizer(model, args):
+    optimizer = {}
+    for name, net in model.items():
+        optimizer['optimizer_' + name] = optim.Adam(
+            filter(lambda p: p.requires_grad, net.parameters()), lr=args.lr,
+            weight_decay=5e-5)
+    return optimizer
+
+def get_scheduler(model, optimizer, args):
+    scheduler = {}
+    for name, net in model.items():
+        scheduler['scheduler_' + name] = MultiStepLR(
+            optimizer['optimizer_' + name], milestones=args.milestones,
+            gamma=args.gamma)
+    return scheduler
 
 def evaluate_loss(args, model, data, feature_map):
     if args.note == 'GraphRNN':
@@ -52,6 +67,9 @@ def train_epoch(
             net.zero_grad()
 
         loss, y_pred, y_true = evaluate_loss(args, model, data, feature_map)
+        print(f'train.py: loss: {loss}')
+        print(f'train.py: y_pred: {y_pred}')
+        print(f'train.py: y_true: {y_true}')
         y_preds.extend(y_pred)
         y_trues.extend(y_true)
 
@@ -73,6 +91,11 @@ def train_epoch(
         if args.log_tensorboard:
             summary_writer.add_scalar('{} {} Loss/train batch'.format(
                 args.note, args.graph_type), loss, batch_id + batch_count * epoch)
+
+        print('\n\n\nparam.data:')
+        for param in model['output_layer'].parameters():
+            print(param.data)
+        print('\n\n\nparam.data:')
 
     y_preds = [1. if n >= 0.5 else 0. for n in y_preds]
     # print('y_trues: ', y_trues)
@@ -98,17 +121,9 @@ def test_data(args, model, dataloader, feature_map):
 # Main training function
 def train(args, dataloader_train, model, feature_map, dataloader_validate=None):
     # initialize optimizer
-    optimizer = {}
-    for name, net in model.items():
-        optimizer['optimizer_' + name] = optim.Adam(
-            filter(lambda p: p.requires_grad, net.parameters()), lr=args.lr,
-            weight_decay=5e-5)
+    optimizer = get_optimizer(model, args)
 
-    scheduler = {}
-    for name, net in model.items():
-        scheduler['scheduler_' + name] = MultiStepLR(
-            optimizer['optimizer_' + name], milestones=args.milestones,
-            gamma=args.gamma)
+    scheduler = get_scheduler(model, optimizer, args)
 
     if args.load_model:
         load_model(args.load_model_path, args.device,

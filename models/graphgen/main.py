@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     graph_label_list = get_graph_label_list()
 
-    feature_map = get_feature_map()
+    feature_map = get_feature_map(graph_label_list)
 
     model = get_model(feature_map)
 
