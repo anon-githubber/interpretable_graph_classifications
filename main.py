@@ -34,11 +34,9 @@ from utilities.metrics import auc_scores, compute_metric
 # Check if gpu is available
 print('\n\ntorch.cuda.is_available(): ', torch.cuda.is_available(), '\n\n')
 
-
 # Define timer list to report running statistics
 timing_dict = {"forward": [], "backward": []}
 run_statistics_string = "Run statistics: \n"
-
 
 
 def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args, dataset_features, optimizer=None, scheduler=None):
@@ -64,48 +62,9 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 	all_scores = []
 	total_loss = []
 
-
 	for _, net in classifier.items():
 		net.train()
 
-	'''
-
-	for i in range(100):
-
-		idx=i
-		dfscode_tensor = load_dfscode_tensor(args.min_dfscode_tensor_path, idx)
-				# print(f'*** 7 dfscode_tensor: {dfscode_tensor}')
-				
-		dfscode_tensor = get_RNN_input_from_dfscode_tensor(dfscode_tensor, 1, args, dataset_features)
-
-		print(dfscode_tensor)
-		input = dfscode_tensor.unsqueeze(0).cuda()
-
-		classifier['dfs_code_rnn'].init_hidden(batch_size=1)
-
-		# input = torch.cat(dfscode_tensor)
-		# input = input.unsqueeze(0)
-
-		output = classifier['dfs_code_rnn'](input)
-		output = classifier['output_layer'](output)
-
-		for _, net in classifier.items():
-			net.zero_grad()
-		loss = F.binary_cross_entropy(output.float()[0][:1], torch.tensor([1]).float().cuda())
-		# loss = F.nll_loss(output, labels)
-		loss.backward()
-		for _, net in classifier.items():
-			clip_grad_value_(net.parameters(), 1.0)
-		for _, opt in optimizer.items():
-			opt.step()
-		for _, sched in scheduler.items():
-			sched.step()
-
-		print('done: ', i)
-
-	sys.exit()
-
-	'''
 	# Determine batch size and initialise progress bar (pbar)
 	# bsize = max(config["general"]["batch_size"], 1)
 	assert config["general"]["batch_size"]==1
@@ -178,8 +137,9 @@ def loop_dataset_DFSRNN(sample_idxes, graph_label_list, classifier, config, args
 				clip_grad_value_(net.parameters(), 1.0)
 			for _, opt in optimizer.items():
 				opt.step()
-			for _, sched in scheduler.items():
-				sched.step()
+			if scheduler!=None:
+				for _, sched in scheduler.items():
+					sched.step()
 
 		#print('** main.py line 88: output.is_cuda: ', output.is_cuda)
 		temp_timing_dict["forward"].append(time.perf_counter() - start_forward)
@@ -242,8 +202,8 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 	:return: average loss and other model performance metrics
 	'''
 
-	print('*** 4 len(g_list): ', len(g_list))
-	print('*** 5 sample_idxes: ', sample_idxes)
+	# print('*** 4 len(g_list): ', len(g_list))
+	# print('*** 5 sample_idxes: ', sample_idxes)
 	# print('*** 6 config: ', config)
 
 	n_samples = 0
@@ -256,7 +216,7 @@ def loop_dataset(g_list, classifier, sample_idxes, config, dataset_features, opt
 	total_iters = (len(sample_idxes) + (bsize - 1) *
 				   (optimizer is None)) // bsize
 	# pbar = tqdm(range(total_iters), unit='batch')
-	print(f'*** 6 total_iters: {total_iters}')
+	# print(f'*** 6 total_iters: {total_iters}')
 
 	# Create temporary timer dict to store timing data for this loop
 	temp_timing_dict = {"forward": [], "backward": []}
@@ -378,9 +338,6 @@ if __name__ == '__main__':
 	np.random.seed(config["run"]["seed"])
 	torch.manual_seed(config["run"]["seed"])
 
-	# graphgen args
-	args=None
-
 	# [1] Load graph data using util.load_data(), see util.py =========================================================
 	# Specify the dataset to use and the number of folds for partitioning
 
@@ -389,16 +346,23 @@ if __name__ == '__main__':
 		sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "models/graphgen")))
 		sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "models/graphgen/bin")))
 
-
 		# import graphgen functions, replace args
 		from models.graphgen.main import *
 
+		# 统一yml & args
+		# 其实不需要统一，统一用GCN里的就好
+		# 
+		# args.note = config["run"]["model"]
+		# args.graph_type = config["run"]["dataset"]
+		args.epochs = config["run"]["num_epochs"] # epoch用GCN的
+		args.batch_size = config["general"]["batch_size"] #bs用GCN的
+		# args.lr = config["run"]["learning_rate"] #用GCN的
 
-		# 在这个script里面，graphgen默认用cls模式，和已生成好的tensor
-		args.used_in = 'cls'
-		args.produce_graphs = False 
-		args.produce_min_dfscodes = False
-		args.produce_min_dfscode_tensors = False
+		# # 在这个script里面，graphgen默认用cls模式，和已生成好的tensor
+		# args.used_in = 'cls'
+		# args.produce_graphs = False 
+		# args.produce_min_dfscodes = False
+		# args.produce_min_dfscode_tensors = False
 
 		graph_list = get_graph_list()
 		graph_label_list = get_graph_label_list()
@@ -525,9 +489,15 @@ if __name__ == '__main__':
 
 			# Define back propagation optimizer
 			if config["run"]["model"]=='DFScodeRNN_cls':
+				# graphgen optimizer(Adam) and scheduler(MultiStepLR)
 				from models.graphgen.train import get_optimizer, get_scheduler
 				optimizer = get_optimizer(classifier_model, args)
 				scheduler = get_scheduler(classifier_model, optimizer, args)
+				# GCN optimizer(Adam)
+				# optimizer = {}
+				# for name, net in classifier_model.items():
+				# 	optimizer['optimizer_' + name] = optim.Adam(net.parameters(), lr=config["run"]["learning_rate"])
+				# scheduler=None
 			else:
 				optimizer = optim.Adam(classifier_model.parameters(),
 								   lr=config["run"]["learning_rate"])

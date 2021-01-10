@@ -9,15 +9,23 @@ MODEL=DFScodeRNN_cls
 DATA=MUTAG
 
 ROOT=/home/FYP/heyu0012/projects/interpretable_graph_classifications
-GRAPHGEN_RESULTS_PATH=/home/FYP/heyu0012/results/interpretable_graph_classifications/graphgen/DfsRNN_${DATA}_classification/
-mkdir -p $GRAPHGEN_RESULTS_PATH
-export GRAPHGEN_RESULTS_PATH=$GRAPHGEN_RESULTS_PATH
 
-MUTAG_DATASET_PATH=/home/FYP/heyu0012/results/graphgen/DfsRNN_MUTAG_classification/datasets/MUTAG
-MUTAG_LABEL_PATH=$MUTAG_DATASET_PATH
-MUTAG_DFSTENSOR_PATH=${MUTAG_DATASET_PATH}/min_dfscode_tensors
-export MUTAG_LABEL_PATH=$MUTAG_LABEL_PATH
-export MUTAG_DFSTENSOR_PATH=$MUTAG_DFSTENSOR_PATH
+BASE_PATH=${ROOT}/data/${DATA}/
+# GRAPHGEN_RESULTS_PATH=/home/FYP/heyu0012/results/interpretable_graph_classifications/graphgen/DfsRNN_${DATA}_classification/
+rm -rf $BASE_PATH/graphgen
+
+export MODEL=${MODEL}
+export DATA=${DATA}
+export BASE_PATH=$BASE_PATH
+
+# add graphgen bin for generating dfs code
+export PATH=${ROOT}/models/graphgen/bin:/$PATH
+
+# MUTAG_DATASET_PATH=/home/FYP/heyu0012/results/graphgen/DfsRNN_MUTAG_classification/datasets/MUTAG
+# MUTAG_LABEL_PATH=$MUTAG_DATASET_PATH
+# MUTAG_DFSTENSOR_PATH=${MUTAG_DATASET_PATH}/min_dfscode_tensors
+# export MUTAG_LABEL_PATH=$MUTAG_LABEL_PATH
+# export MUTAG_DFSTENSOR_PATH=$MUTAG_DFSTENSOR_PATH
 
 cd $ROOT
 

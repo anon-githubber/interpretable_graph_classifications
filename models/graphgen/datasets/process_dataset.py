@@ -332,53 +332,53 @@ def produce_random_walk_sampled_graphs(
 # Routine to create datasets
 def create_graphs(args):
     # Different datasets
-    if 'Lung' == args.graph_type:
-        base_path = os.path.join(args.dataset_path, 'Lung/')
-        input_path = base_path + 'lung.txt'
-        min_num_nodes, max_num_nodes = None, 50
-        min_num_edges, max_num_edges = None, None
+    # if 'Lung' == args.graph_type:
+    #     base_path = os.path.join(args.dataset_path, 'Lung/')
+    #     input_path = base_path + 'lung.txt'
+    #     min_num_nodes, max_num_nodes = None, 50
+    #     min_num_edges, max_num_edges = None, None
 
-    elif 'Breast' == args.graph_type:
-        base_path = os.path.join(args.dataset_path, 'Breast/')
-        input_path = base_path + 'breast.txt'
-        min_num_nodes, max_num_nodes = None, None
-        min_num_edges, max_num_edges = None, None
+    # elif 'Breast' == args.graph_type:
+    #     base_path = os.path.join(args.dataset_path, 'Breast/')
+    #     input_path = base_path + 'breast.txt'
+    #     min_num_nodes, max_num_nodes = None, None
+    #     min_num_edges, max_num_edges = None, None
 
-    elif 'Leukemia' == args.graph_type:
-        base_path = os.path.join(args.dataset_path, 'Leukemia/')
-        input_path = base_path + 'leukemia.txt'
-        min_num_nodes, max_num_nodes = None, None
-        min_num_edges, max_num_edges = None, None
+    # elif 'Leukemia' == args.graph_type:
+    #     base_path = os.path.join(args.dataset_path, 'Leukemia/')
+    #     input_path = base_path + 'leukemia.txt'
+    #     min_num_nodes, max_num_nodes = None, None
+    #     min_num_edges, max_num_edges = None, None
 
-    elif 'Yeast' == args.graph_type:
-        base_path = os.path.join(args.dataset_path, 'Yeast/')
-        input_path = base_path + 'yeast.txt'
-        min_num_nodes, max_num_nodes = None, 50
-        min_num_edges, max_num_edges = None, None
+    # elif 'Yeast' == args.graph_type:
+    #     base_path = os.path.join(args.dataset_path, 'Yeast/')
+    #     input_path = base_path + 'yeast.txt'
+    #     min_num_nodes, max_num_nodes = None, 50
+    #     min_num_edges, max_num_edges = None, None
 
-    elif 'All' == args.graph_type:
-        base_path = os.path.join(args.dataset_path, 'All/')
-        input_path = base_path + 'all.txt'
-        # No limit on number of nodes and edges
-        min_num_nodes, max_num_nodes = None, None
-        min_num_edges, max_num_edges = None, None
+    # elif 'All' == args.graph_type:
+    #     base_path = os.path.join(args.dataset_path, 'All/')
+    #     input_path = base_path + 'all.txt'
+    #     # No limit on number of nodes and edges
+    #     min_num_nodes, max_num_nodes = None, None
+    #     min_num_edges, max_num_edges = None, None
 
-    elif 'ENZYMES' in args.graph_type:
-        base_path = os.path.join(args.dataset_path, 'ENZYMES/')
-        # Node invariants - Options 'Degree' and 'CC'
-        node_invariants = ['Degree']
-        min_num_nodes, max_num_nodes = None, None
-        min_num_edges, max_num_edges = None, None
+    # elif 'ENZYMES' in args.graph_type:
+    #     base_path = os.path.join(args.dataset_path, 'ENZYMES/')
+    #     # Node invariants - Options 'Degree' and 'CC'
+    #     node_invariants = ['Degree']
+    #     min_num_nodes, max_num_nodes = None, None
+    #     min_num_edges, max_num_edges = None, None
 
-    elif 'citeseer' in args.graph_type:
-        base_path = os.path.join(args.dataset_path, 'citeseer/')
-        random_walk_iterations = 150  # Controls size of graph
-        num_factor = 5  # Controls size of dataset
+    # elif 'citeseer' in args.graph_type:
+    #     base_path = os.path.join(args.dataset_path, 'citeseer/')
+    #     random_walk_iterations = 150  # Controls size of graph
+    #     num_factor = 5  # Controls size of dataset
 
-        min_num_nodes, max_num_nodes = None, None
-        min_num_edges, max_num_edges = 20, None
+    #     min_num_nodes, max_num_nodes = None, None
+    #     min_num_edges, max_num_edges = 20, None
 
-    elif 'cora' in args.graph_type:
+    if 'cora' in args.graph_type:
         base_path = os.path.join(args.dataset_path, 'cora/')
         random_walk_iterations = 150  # Controls size of graph
         num_factor = 5  # Controls size of dataset
@@ -387,61 +387,51 @@ def create_graphs(args):
         min_num_edges, max_num_edges = 20, None
 
     elif 'MUTAG' in args.graph_type:
-        base_path = os.path.join(args.dataset_path, 'MUTAG/')
-        input_path = base_path + 'MUTAG.p'
+        # base_path = os.path.join(args.dataset_path, 'MUTAG/')
+        input_path = os.path.join(args.base_path, 'MUTAG.p')
 
     else:
         print('Dataset - {} is not valid'.format(args.graph_type))
         exit()
 
-    args.base_path = base_path
-    args.current_dataset_path = os.path.join(base_path, 'graphs/')
-    args.min_dfscode_path = os.path.join(base_path, 'min_dfscodes/')
-    min_dfscode_tensor_path = os.path.join(base_path, 'min_dfscode_tensors/')
-    args.min_dfscode_tensor_path = min_dfscode_tensor_path
+    args.graph_path = os.path.join(args.graphgen_save_path, 'graphs/')
+    args.min_dfscode_path = os.path.join(args.graphgen_save_path, 'min_dfscodes/')
+    args.min_dfscode_tensor_path = os.path.join(args.graphgen_save_path, 'min_dfscode_tensors/')
+
     # print('!!!')
     print(f'args.base_path: {args.base_path}')
-    print(f'args.current_dataset_path: {args.current_dataset_path}')
+    print(f'args.graph_path: {args.graph_path}')
     print(f'args.min_dfscode_path: {args.min_dfscode_path}')
-    print(f'min_dfscode_tensor_path: {min_dfscode_tensor_path}')
+    print(f'args.min_dfscode_tensor_path: {args.min_dfscode_tensor_path}')
 
-    if args.used_in=='cls':
-        
-        if not os.path.exists(base_path):
-            os.makedirs(base_path)
+    # os.symlink(os.environ.get('MUTAG_DFSTENSOR_PATH'), args.min_dfscode_tensor_path[:-1])
 
-        if not os.path.exists(args.current_dataset_path):
-            os.mkdir(args.current_dataset_path)
+    # if args.note == 'GraphRNN' or args.note == 'DGMG':
+    #     args.current_processed_dataset_path = args.graph_path
+    # elif args.note == 'DFScodeRNN':
+    #     args.current_processed_dataset_path = args.min_dfscode_tensor_path
+    if args.note == 'DFScodeRNN_cls':
+        args.current_processed_dataset_path = args.min_dfscode_tensor_path
 
-        if not os.path.exists(min_dfscode_tensor_path):
-            os.symlink(os.environ.get('MUTAG_DFSTENSOR_PATH'), min_dfscode_tensor_path[:-1])
+    if not os.path.exists(args.graph_path):
+        mkdir(args.graph_path)
 
-    if args.note == 'GraphRNN' or args.note == 'DGMG':
-        args.current_processed_dataset_path = args.current_dataset_path
-    elif args.note == 'DFScodeRNN':
-        args.current_processed_dataset_path = min_dfscode_tensor_path
-    elif args.note == 'DFScodeRNN_cls':
-        args.current_processed_dataset_path = min_dfscode_tensor_path
+        # if args.graph_type in ['Lung', 'Breast', 'Leukemia', 'Yeast', 'All']:
+        #     count = produce_graphs_from_raw_format(
+        #         input_path, args.graph_path, args.num_graphs,
+        #         min_num_nodes=min_num_nodes, max_num_nodes=max_num_nodes,
+        #         min_num_edges=min_num_edges, max_num_edges=max_num_edges)
 
-    if args.produce_graphs:
-        mkdir(args.current_dataset_path)
+        # elif args.graph_type in ['ENZYMES']:
+        #     count = produce_graphs_from_graphrnn_format(
+        #         base_path, args.graph_type, args.graph_path,
+        #         num_graphs=args.num_graphs, node_invariants=node_invariants,
+        #         min_num_nodes=min_num_nodes, max_num_nodes=max_num_nodes,
+        #         min_num_edges=min_num_edges, max_num_edges=max_num_edges)
 
-        if args.graph_type in ['Lung', 'Breast', 'Leukemia', 'Yeast', 'All']:
-            count = produce_graphs_from_raw_format(
-                input_path, args.current_dataset_path, args.num_graphs,
-                min_num_nodes=min_num_nodes, max_num_nodes=max_num_nodes,
-                min_num_edges=min_num_edges, max_num_edges=max_num_edges)
-
-        elif args.graph_type in ['ENZYMES']:
-            count = produce_graphs_from_graphrnn_format(
-                base_path, args.graph_type, args.current_dataset_path,
-                num_graphs=args.num_graphs, node_invariants=node_invariants,
-                min_num_nodes=min_num_nodes, max_num_nodes=max_num_nodes,
-                min_num_edges=min_num_edges, max_num_edges=max_num_edges)
-
-        elif args.graph_type in ['cora', 'citeseer']:
+        if args.graph_type in ['cora', 'citeseer']:
             count = produce_random_walk_sampled_graphs(
-                base_path, args.graph_type, args.current_dataset_path,
+                base_path, args.graph_type, args.graph_path,
                 num_graphs=args.num_graphs, iterations=random_walk_iterations,
                 num_factor=num_factor, min_num_nodes=min_num_nodes,
                 max_num_nodes=max_num_nodes, min_num_edges=min_num_edges,
@@ -449,40 +439,43 @@ def create_graphs(args):
 
         elif args.graph_type in ['MUTAG']:
             count = unserialize_MUTAG_pickle(
-                input_path, args.base_path, args.current_dataset_path)
+                input_path, args.graphgen_save_path, args.graph_path)
 
         print('Graphs produced', count)
 
-    if args.used_in == 'gen':
         # Produce feature map
-        feature_map = mapping(args.current_dataset_path,
-                            args.current_dataset_path + 'map.dict')
+        feature_map = mapping(args.graph_path,
+                            args.graph_path + 'map.dict')
         print(f'feature_map: {feature_map}')
 
-    if (args.note in ['DFScodeRNN', 'DFScodeRNN_cls']) and args.produce_min_dfscodes:
+    # if (args.note in ['DFScodeRNN', 'DFScodeRNN_cls']) and args.produce_min_dfscodes:
+    if not os.path.exists(args.min_dfscode_path):
         # Empty the directory
         mkdir(args.min_dfscode_path)
+        if not os.path.exists(args.temp_path):
+            mkdir(args.current_temp_path)
 
         start = time.time()
-        graphs_to_min_dfscodes(args.current_dataset_path,
+        graphs_to_min_dfscodes(args.graph_path,
                                args.min_dfscode_path, args.current_temp_path)
 
         end = time.time()
         print('Time taken to make dfscodes = {:.3f}s'.format(end - start))
 
-    if (args.note in ['DFScodeRNN', 'DFScodeRNN_cls']) and args.produce_min_dfscode_tensors:
+    # if (args.note in ['DFScodeRNN', 'DFScodeRNN_cls']) and args.produce_min_dfscode_tensors:
+    if not os.path.exists(args.min_dfscode_tensor_path):
         # Empty the directory
-        mkdir(min_dfscode_tensor_path)
+        mkdir(args.min_dfscode_tensor_path)
 
         start = time.time()
         min_dfscodes_to_tensors(args.min_dfscode_path,
-                                min_dfscode_tensor_path, feature_map)
+                                args.min_dfscode_tensor_path, feature_map)
 
         end = time.time()
         print('Time taken to make dfscode tensors= {:.3f}s'.format(
             end - start))
 
-    count = len([name for name in os.listdir(min_dfscode_tensor_path) if name.endswith(".dat")])
+    count = len([name for name in os.listdir(args.min_dfscode_tensor_path) if name.endswith(".dat")])
 
     graphs = [i for i in range(count)]
     return graphs

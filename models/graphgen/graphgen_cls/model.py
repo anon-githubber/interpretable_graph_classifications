@@ -259,24 +259,24 @@ def create_model(args, feature_map):
     #     input_size=args.hidden_size_dfscode_rnn, embedding_size=args.embedding_size_vertex_output,
     #     output_size=len_node_vec, dropout=args.dfscode_rnn_dropout).to(device=args.device)
 
-    if args.used_in=='cls':
-        MLP_layer = MLP_onelayer
-        output_size = feature_map['label_size']
-        # output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
-        # output_layer = MLP_layer(
-        #         input_size=args.hidden_size_dfscode_rnn, 
-        #         output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
+    # if args.used_in=='cls':
+    MLP_layer = MLP_onelayer
+    output_size = feature_map['label_size']
+    # output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
+    # output_layer = MLP_layer(
+    #         input_size=args.hidden_size_dfscode_rnn, 
+    #         output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
 
-        output_layer = MLP_layer(
-                input_size=args.hidden_size_dfscode_rnn, 
-                output_size=output_size).to(device=args.device)
+    output_layer = MLP_layer(
+            input_size=args.hidden_size_dfscode_rnn, 
+            output_size=output_size).to(device=args.device)
 
-    elif args.used_in=='gen':
-        MLP_layer = MLP_onelayer_sigmoid
-        output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
-        output_layer = MLP_layer(
-                input_size=args.hidden_size_dfscode_rnn, 
-                output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
+    # elif args.used_in=='gen':
+    #     MLP_layer = MLP_onelayer_sigmoid
+    #     output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
+    #     output_layer = MLP_layer(
+    #             input_size=args.hidden_size_dfscode_rnn, 
+    #             output_size=output_size, dropout=args.dfscode_rnn_dropout).to(device=args.device)
 
 
     model = {
@@ -287,8 +287,5 @@ def create_model(args, feature_map):
         # 'output_vertex2': output_vertex2
         'output_layer' : output_layer
     }
-
-    # TODO 3
-    # 改了output layer, 以后跑graphgen的时候怎么换？
 
     return model

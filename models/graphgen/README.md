@@ -61,7 +61,7 @@ Parameter setting:
 
 ## Outputs
 
-There are several different types of outputs, each saved into a different directory under a path prefix. The path prefix is set at `args.dir_input`. Suppose that this field is set to `''`:
+There are several different types of outputs, each saved into a different directory under a path prefix. The path prefix is set at `args.graphgen_save_path`. Suppose that this field is set to `''`:
 
 - `tensorboard/` contains tensorboard event objects which can be used to view training and validation graphs in real time.
 - `model_save/` stores the model checkpoints

@@ -80,9 +80,6 @@ def evaluate_loss(args, model, data, feature_map):
     x_target = get_RNN_input_from_dfscode_tensor(x, x_len_max, args, feature_map, sort_indices)
     # print('x_target: ', x_target)
 
-    # TODO 3 
-    # the model is changed, not dictionary any longer
-
     # initialize dfs_code_rnn hidden according to batch size
     # model['dfs_code_rnn'].hidden = model['dfs_code_rnn'].init_hidden(
     #     batch_size=batch_size)

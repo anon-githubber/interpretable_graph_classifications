@@ -1,0 +1,18 @@
+Run statistics: 
+==== Configuration Settings ====
+== Run Settings ==
+Model: DFScodeRNN_cls, Dataset: MUTAG
+num_epochs: 50
+learning_rate: 0.0001
+seed: 1800
+k_fold: 5
+model: DFScodeRNN_cls
+dataset: MUTAG
+
+== Model Settings and results ==
+dummy: 0
+
+Accuracy (avg): 0.66501 ROC_AUC (avg): 0.83487 PRC_AUC (avg): 0.90378 
+
+Average forward propagation time taken(ms): 2.6875182138783873
+Average backward propagation time taken(ms): 0.9365122129969613

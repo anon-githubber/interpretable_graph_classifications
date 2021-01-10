@@ -27,11 +27,12 @@ args = args.update_args()
 # args fetch info from config.yml also
 
 def get_feature_map(graph_label_list):
-    fearure_map_path = os.path.join(args.base_path, 'graphs', 'map.dict')
-    if not os.path.exists(fearure_map_path):
-        os.symlink(os.path.join(os.environ.get('MUTAG_LABEL_PATH'), 'graphs' ,'map.dict'), fearure_map_path)
+    fearure_map_path = os.path.join(args.graphgen_save_path, 'graphs', 'map.dict')
+    # if not os.path.exists(fearure_map_path):
+    #     os.symlink(os.path.join(os.environ.get('MUTAG_LABEL_PATH'), 'graphs' ,'map.dict'), fearure_map_path)
     with open(fearure_map_path, 'rb') as f:
         feature_map = pickle.load(f)
+    # 在原来的generate任务中不需要label，这里单独加上
     if args.note == 'DFScodeRNN_cls':
         feature_map['label_size'] = len(set(graph_label_list))
     return feature_map
@@ -40,9 +41,9 @@ def get_graph_list():
     return create_graphs(args)
 
 def get_graph_label_list():
-    mutag_label_path = os.path.join(args.base_path, 'graph_label.dat')
-    if not os.path.exists(mutag_label_path):
-        os.symlink(os.path.join(os.environ.get('MUTAG_LABEL_PATH'), 'graph_label.dat'), mutag_label_path)
+    mutag_label_path = os.path.join(args.graphgen_save_path, 'graph_label.dat')
+    # if not os.path.exists(mutag_label_path):
+    #     os.symlink(os.path.join(os.environ.get('MUTAG_LABEL_PATH'), 'graph_label.dat'), mutag_label_path)
     with open(mutag_label_path, 'rb') as f:
         graph_label_list = pickle.load(f)
     return graph_label_list
