@@ -1,0 +1,18 @@
+Run statistics: 
+==== Configuration Settings ====
+== Run Settings ==
+Model: DFScodeRNN_cls, Dataset: PTC_FR
+num_epochs: 50
+learning_rate: 0.003
+seed: 1800
+k_fold: 5
+model: DFScodeRNN_cls
+dataset: PTC_FR
+
+== Model Settings and results ==
+dummy: 0
+
+Accuracy (avg): 0.59243 ROC_AUC (avg): 0.48632 PRC_AUC (avg): 0.34552 
+
+Average forward propagation time taken(ms): 3.22110408689563
+Average backward propagation time taken(ms): 1.2198846329305875

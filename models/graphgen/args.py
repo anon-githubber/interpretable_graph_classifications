@@ -24,7 +24,7 @@ class Args:
         self.hidden_size_dfscode_rnn = 4
         self.dfscode_rnn_dropout = 0  # Dropout layer in between RNN layers
 
-        self.lr = 0.003  # Learning rate
+        self.lr = 0.0001  # Learning rate
         # Learning rate decay factor at each milestone (no. of epochs)
         self.gamma = 0.3
         self.milestones = [100, 200, 400, 800]  # List of milestones

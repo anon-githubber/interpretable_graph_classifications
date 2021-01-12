@@ -323,7 +323,7 @@ if __name__ == '__main__':
 		description='Argparser for graph classification')
 	cmd_opt.add_argument('-cuda', default='1', help='0-CPU, 1-GPU')
 	cmd_opt.add_argument('-gm', default='DFScodeRNN_cls', help='GNN model to use')
-	cmd_opt.add_argument('-data', default='MUTAG', help='Dataset to use')
+	cmd_opt.add_argument('-data', default='NCI-H23', help='Dataset to use')
 	# 0 -> Load classifier, 1 -> train from scratch
 	cmd_opt.add_argument('-retrain', default='1', help='Whether to re-train the classifier or use saved trained model')
 	cmd_args, _ = cmd_opt.parse_known_args()
@@ -356,6 +356,7 @@ if __name__ == '__main__':
 		# args.graph_type = config["run"]["dataset"]
 		args.epochs = config["run"]["num_epochs"] # epoch用GCN的
 		args.batch_size = config["general"]["batch_size"] #bs用GCN的
+		config['run']['learning_rate'] = args.lr # only for printing purpose
 		# args.lr = config["run"]["learning_rate"] #用GCN的
 
 		# # 在这个script里面，graphgen默认用cls模式，和已生成好的tensor

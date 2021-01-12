@@ -650,7 +650,7 @@ Run statistics:
 == Run Settings ==
 Model: DFScodeRNN_cls, Dataset: MUTAG
 num_epochs: 50
-learning_rate: 0.0001
+learning_rate: 0.003
 seed: 1800
 k_fold: 5
 model: DFScodeRNN_cls

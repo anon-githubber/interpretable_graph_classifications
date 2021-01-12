@@ -45,6 +45,7 @@ def unserialize_MUTAG_pickle(inputfile, grgph_label_path, output_path):
         pickled_file.close()
 
     # Relabel nodes
+    # borrow from load_data.py line 23
     for i in range(len(nxgraph_list)):
         relabel_mapping = {}
         j = 0
@@ -390,6 +391,18 @@ def create_graphs(args):
         # base_path = os.path.join(args.dataset_path, 'MUTAG/')
         input_path = os.path.join(args.base_path, 'MUTAG.p')
 
+    elif 'NCI-H23' in args.graph_type:
+        # base_path = os.path.join(args.dataset_path, 'MUTAG/')
+        input_path = os.path.join(args.base_path, 'NCI-H23.p')
+
+    elif 'PTC_FR' in args.graph_type:
+        # base_path = os.path.join(args.dataset_path, 'MUTAG/')
+        input_path = os.path.join(args.base_path, 'PTC_FR.p')
+
+    elif 'TOX21_AR' in args.graph_type:
+        # base_path = os.path.join(args.dataset_path, 'MUTAG/')
+        input_path = os.path.join(args.base_path, 'TOX21_AR.p')
+
     else:
         print('Dataset - {} is not valid'.format(args.graph_type))
         exit()
@@ -437,7 +450,7 @@ def create_graphs(args):
                 max_num_nodes=max_num_nodes, min_num_edges=min_num_edges,
                 max_num_edges=max_num_edges)
 
-        elif args.graph_type in ['MUTAG']:
+        elif args.graph_type in ['MUTAG', 'NCI-H23', 'PTC_FR', 'TOX21_AR']:
             count = unserialize_MUTAG_pickle(
                 input_path, args.graphgen_save_path, args.graph_path)
 

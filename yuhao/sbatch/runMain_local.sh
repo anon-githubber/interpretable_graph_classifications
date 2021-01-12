@@ -6,13 +6,13 @@
 # MODEL=GCN
 MODEL=DFScodeRNN_cls
 
-DATA=MUTAG
+DATA=NCI-H23
 
 ROOT=/home/FYP/heyu0012/projects/interpretable_graph_classifications
 
 BASE_PATH=${ROOT}/data/${DATA}/
 # GRAPHGEN_RESULTS_PATH=/home/FYP/heyu0012/results/interpretable_graph_classifications/graphgen/DfsRNN_${DATA}_classification/
-rm -rf $BASE_PATH/graphgen
+# rm -rf $BASE_PATH/graphgen
 
 export MODEL=${MODEL}
 export DATA=${DATA}

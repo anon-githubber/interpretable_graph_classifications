@@ -1,0 +1,19 @@
+Run statistics: 
+==== Configuration Settings ====
+== Run Settings ==
+Model: GCN, Dataset: TOX21_AR
+num_epochs: 50
+learning_rate: 0.0001
+seed: 1800
+k_fold: 5
+model: GCN
+dataset: TOX21_AR
+
+== Model Settings and results ==
+convolution_layers_size: 128-256-512
+dropout: 0.5
+
+Accuracy (avg): 0.95935 ROC_AUC (avg): 0.69328 PRC_AUC (avg): 0.08069 
+
+Average forward propagation time taken(ms): 2.205886896955113
+Average backward propagation time taken(ms): 1.4464024959454371

@@ -11,10 +11,14 @@ source /home/FYP/heyu0012/.bashrc
 conda activate GCNN_GAP_graphgen
 conda env list
 
-MODEL=GCN
-# MODEL=DFScodeRNN_cls
+# MODEL=GCN
+MODEL=DFScodeRNN_cls
 
-DATA=MUTAG
+# DATA=MUTAG
+# DATA=NCI-H23
+DATA=TOX21_AR
+# DATA=PTC_FR
+
 
 ROOT=/home/FYP/heyu0012/projects/interpretable_graph_classifications
 
