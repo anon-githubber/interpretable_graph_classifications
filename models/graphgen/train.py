@@ -14,7 +14,7 @@ from sklearn.metrics import accuracy_score
 import sys
 
 def get_optimizer(model, args):
-    print('DfscodeRnn_cls args.lr: ', args.lr)
+    # print('DfscodeRnn_cls args.lr: ', args.lr)
     optimizer = {}
     for name, net in model.items():
         optimizer['optimizer_' + name] = optim.Adam(

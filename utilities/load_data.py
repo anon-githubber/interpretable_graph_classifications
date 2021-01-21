@@ -199,8 +199,8 @@ def split_train_test(k_fold, graph_list, graph_labels):
 	test_graphs = []
 	for train_index, test_index in stratified_KFold.split(graph_list, graph_labels):
 
-		print('*** 1 train_index: ', train_index)
-		print('*** 2 test_index: ', test_index)
+		# print('*** 1 train_index: ', train_index)
+		# print('*** 2 test_index: ', test_index)
 
 		train_graphs.append([graph_list[i] for i in train_index])
 		test_graphs.append([graph_list[i] for i in test_index])

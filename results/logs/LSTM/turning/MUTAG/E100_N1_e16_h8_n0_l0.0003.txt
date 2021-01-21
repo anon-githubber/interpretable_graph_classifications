@@ -1,0 +1,31 @@
+
+
+model:
+ {'dfs_code_rnn': RNN(
+  (input): Linear(in_features=76, out_features=16, bias=True)
+  (rnn): LSTM(16, 8, batch_first=True)
+), 'output_layer': MLP_layers(
+  (mlp): Sequential(
+    (Linear0): Linear(in_features=8, out_features=2, bias=True)
+  )
+)}
+
+
+Run statistics: 
+==== Configuration Settings ====
+== Run Settings ==
+Model: DFScodeRNN_cls, Dataset: MUTAG
+num_epochs: 100
+learning_rate: 0.0003
+seed: 1800
+k_fold: 5
+model: DFScodeRNN_cls
+dataset: MUTAG
+
+== Model Settings and results ==
+dummy: 0
+
+Accuracy (avg): 0.53869 ROC_AUC (avg): 0.51333 PRC_AUC (avg): 0.74798 
+
+Average forward propagation time taken(ms): 2.567305575537745
+Average backward propagation time taken(ms): 0.8907111265418225

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
+from collections import OrderedDict
 
 
 class MLP_Softmax(nn.Module):
@@ -50,24 +51,46 @@ class MLP_Log_Softmax(nn.Module):
     def forward(self, input):
         return self.mlp(input)
 
-class MLP_onelayer(nn.Module):
+# class MLP_onelayer(nn.Module):
+#     """
+#     A deterministic linear output layer
+#     """
+
+#     def __init__(self, input_size, output_size, dropout=0):
+#         super(MLP_onelayer, self).__init__()
+#         self.mlp = nn.Sequential(
+#             nn.Linear(input_size, output_size),
+#         )
+
+#         for m in self.modules():
+#             if isinstance(m, nn.Linear):
+#                 m.weight.data = init.xavier_uniform_(
+#                     m.weight.data, gain=nn.init.calculate_gain('relu'))
+
+#     def forward(self, input):
+#         return self.mlp(input)
+
+class MLP_layers(nn.Module):
     """
     A deterministic linear output layer
     """
 
-    def __init__(self, input_size, output_size, dropout=0):
-        super(MLP_onelayer, self).__init__()
-        self.mlp = nn.Sequential(
-            nn.Linear(input_size, output_size),
-        )
-
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                m.weight.data = init.xavier_uniform_(
-                    m.weight.data, gain=nn.init.calculate_gain('relu'))
+    def __init__(self, input_size, output_size, layers, dropout=0):
+        super(MLP_layers, self).__init__()
+        if layers==0:
+            self.mlp = nn.Sequential(OrderedDict([
+                ('Linear0', nn.Linear(input_size, output_size))
+            ]))
+        else:
+            layer_list=[]
+            for i in range(layers):
+                layer_list.append(('Linear'+str(i), nn.Linear(input_size, input_size)))
+                layer_list.append(('ReLU'+str(i), nn.ReLU()))
+            layer_list.append(('Linear'+str(i+1), nn.Linear(input_size, output_size)))
+            self.mlp=nn.Sequential(OrderedDict(layer_list))
 
     def forward(self, input):
-        return self.mlp(input)
+        return self.mlp(input) 
 
 class MLP_Plain(nn.Module):
     """
@@ -260,7 +283,7 @@ def create_model(args, feature_map):
     #     output_size=len_node_vec, dropout=args.dfscode_rnn_dropout).to(device=args.device)
 
     # if args.used_in=='cls':
-    MLP_layer = MLP_onelayer
+    MLP_layer = MLP_layers
     output_size = feature_map['label_size']
     # output_size = 1 if feature_map['label_size']==2 else feature_map['label_size']
     # output_layer = MLP_layer(
@@ -269,7 +292,8 @@ def create_model(args, feature_map):
 
     output_layer = MLP_layer(
             input_size=args.hidden_size_dfscode_rnn, 
-            output_size=output_size).to(device=args.device)
+            output_size=output_size,
+            layers=args.number_of_mlp_layer).to(device=args.device)
 
     # elif args.used_in=='gen':
     #     MLP_layer = MLP_onelayer_sigmoid

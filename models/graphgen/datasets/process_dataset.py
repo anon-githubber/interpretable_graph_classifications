@@ -412,10 +412,10 @@ def create_graphs(args):
     args.min_dfscode_tensor_path = os.path.join(args.graphgen_save_path, 'min_dfscode_tensors/')
 
     # print('!!!')
-    print(f'args.base_path: {args.base_path}')
-    print(f'args.graph_path: {args.graph_path}')
-    print(f'args.min_dfscode_path: {args.min_dfscode_path}')
-    print(f'args.min_dfscode_tensor_path: {args.min_dfscode_tensor_path}')
+    # print(f'args.base_path: {args.base_path}')
+    # print(f'args.graph_path: {args.graph_path}')
+    # print(f'args.min_dfscode_path: {args.min_dfscode_path}')
+    # print(f'args.min_dfscode_tensor_path: {args.min_dfscode_tensor_path}')
 
     # os.symlink(os.environ.get('MUTAG_DFSTENSOR_PATH'), args.min_dfscode_tensor_path[:-1])
 

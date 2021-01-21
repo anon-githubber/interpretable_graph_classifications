@@ -326,7 +326,18 @@ if __name__ == '__main__':
 	cmd_opt.add_argument('-data', default='NCI-H23', help='Dataset to use')
 	# 0 -> Load classifier, 1 -> train from scratch
 	cmd_opt.add_argument('-retrain', default='1', help='Whether to re-train the classifier or use saved trained model')
+	cmd_opt.add_argument('-params_turning', type=int, default=0, help='for dfscode_rnn only')
+	cmd_opt.add_argument('-rnn_type', type=str, help='for dfscode_rnn only')
+	cmd_opt.add_argument('-epoch', type=int, help='for dfscode_rnn only')
+	cmd_opt.add_argument('-number_of_rnn_layer', type=int, help='for dfscode_rnn only')
+	cmd_opt.add_argument('-embedding_size', type=int, help='for dfscode_rnn only')
+	cmd_opt.add_argument('-hidden_size', type=int, help='for dfscode_rnn only')
+	cmd_opt.add_argument('-number_of_mlp_layer', type=int, help='for dfscode_rnn only')
+	cmd_opt.add_argument('-learning_rate', type=float, help='for dfscode_rnn only')
 	cmd_args, _ = cmd_opt.parse_known_args()
+
+	## TODO
+	# set args optional, (not applicable for GCN)
 
 	# Get run configurations
 	config = yaml.safe_load(open("config.yml"))
@@ -354,8 +365,17 @@ if __name__ == '__main__':
 		# 
 		# args.note = config["run"]["model"]
 		# args.graph_type = config["run"]["dataset"]
-		args.epochs = config["run"]["num_epochs"] # epoch用GCN的
+		args.note = config["run"]["model"]
+		args.rnn_type = cmd_args.rnn_type
+		args.graph_type = config["run"]["dataset"]
+		args.epochs = cmd_args.epoch
+		config["run"]["num_epochs"] = args.epochs #在GCN框架下用config里的参数
 		args.batch_size = config["general"]["batch_size"] #bs用GCN的
+		args.num_layers = cmd_args.number_of_rnn_layer  # Layers of rnn
+		args.embedding_size_dfscode_rnn = cmd_args.embedding_size  # input size for dfscode RNN
+		args.hidden_size_dfscode_rnn = cmd_args.hidden_size
+		args.number_of_mlp_layer = cmd_args.number_of_mlp_layer
+		args.lr = cmd_args.learning_rate
 		config['run']['learning_rate'] = args.lr # only for printing purpose
 		# args.lr = config["run"]["learning_rate"] #用GCN的
 
@@ -376,7 +396,7 @@ if __name__ == '__main__':
 
 		# here graphs are simply indices
 		train_graphs, test_graphs = split_train_test(config["run"]["k_fold"], graph_list, graph_label_list)
-		print(f'\n\ngraphgen args.__dict__: {pprint.pprint(args.__dict__)}\n\n')
+		# print(f'\n\ngraphgen args.__dict__: {pprint.pprint(args.__dict__)}\n\n')
 		print(f'\n\ndataset_features: {dataset_features}\n\n')
 
 	else:
@@ -470,8 +490,8 @@ if __name__ == '__main__':
 		fold_number = 0
 		for train_graph_fold, test_graph_fold in \
 				zip(train_graphs, test_graphs):
-			print("Training model with dataset, testing using fold %s"
-				  % fold_number)
+			# print("Training model with dataset, testing using fold %s"
+				#   % fold_number)
 
 			# load model
 			if config["run"]["model"]=='DFScodeRNN_cls':
@@ -527,15 +547,15 @@ if __name__ == '__main__':
 						optimizer=optimizer)
 
 				# Print training results for epoch
-				print('\033[92m'
-					  'average training of epoch %d: '
-					  'loss %.5f '
-					  'acc %.5f '
-					  'roc_auc %.5f '
-					  'prc_auc %.5f'
-					  '\033[0m' % \
-					(epoch, avg_loss[0], avg_loss[1],
-					avg_loss[2], avg_loss[3]))
+				# print('\033[92m'
+				# 	  'average training of epoch %d: '
+				# 	  'loss %.5f '
+				# 	  'acc %.5f '
+				# 	  'roc_auc %.5f '
+				# 	  'prc_auc %.5f'
+				# 	  '\033[0m' % \
+				# 	(epoch, avg_loss[0], avg_loss[1],
+				# 	avg_loss[2], avg_loss[3]))
 
 				# Set classifier to evaluation mode
 				
@@ -555,15 +575,15 @@ if __name__ == '__main__':
 					test_idxes, config, dataset_features)
 
 				# Print testing results for epoch
-				print('\033[93m'
-					  'average test of epoch %d: '
-					  'loss %.5f '
-					  'acc %.5f '
-					  'roc_auc %.5f '
-					  'prc_auc %.5f'
-					  '\033[0m' % \
-					  (epoch, test_loss[0], test_loss[1],
-					  test_loss[2], test_loss[3]))
+				# print('\033[93m'
+				# 	  'average test of epoch %d: '
+				# 	  'loss %.5f '
+				# 	  'acc %.5f '
+				# 	  'roc_auc %.5f '
+				# 	  'prc_auc %.5f'
+				# 	  '\033[0m' % \
+				# 	  (epoch, test_loss[0], test_loss[1],
+				# 	  test_loss[2], test_loss[3]))
 
 			# Append epoch statistics for reporting purposes
 			model_metrics_dict["accuracy"].append(test_loss[1])
@@ -702,19 +722,29 @@ if __name__ == '__main__':
 
 	print(run_statistics_string)
 
-	# Save dataset features and run statistics to log
-	current_datetime = datetime.datetime.now().strftime("%d%m%Y-%H%M%S")
-	log_file_name = "%s_%s_datetime_%s.txt" %\
-				   (config["run"]["dataset"],
-					config["run"]["model"],
-					str(current_datetime))
+	if cmd_args.params_turning==1:
+		log_file_name = f"E{args.epochs}_N{args.num_layers}_e{args.embedding_size_dfscode_rnn}_h{args.hidden_size_dfscode_rnn}_n{args.number_of_mlp_layer}_l{args.lr}.txt"
 
-	# Save log to text file
-	with open("results/logs/%s" % log_file_name, "w") as f:
-		# if "dataset_info" in dataset_features.keys():
-		# 	dataset_info = dataset_features["dataset_info"] + "\n"
-		# else:
-		dataset_info = ""
-		f.write(dataset_info + run_statistics_string)
+		with open(f"results/logs/{args.rnn_type}/turning/{args.graph_type}/{log_file_name}", "w") as f:
+			f.write('\n\n')
+			print('model:\n', classifier_model, file=f)
+			f.write('\n\n')
+			f.write(run_statistics_string)
+
+	else:
+		# Save dataset features and run statistics to log
+		current_datetime = datetime.datetime.now().strftime("%d%m%Y-%H%M%S")
+		log_file_name = "%s_%s_datetime_%s.txt" %\
+					(config["run"]["dataset"],
+						config["run"]["model"],
+						str(current_datetime))
+
+		# Save log to text file
+		with open("results/logs/%s" % log_file_name, "w") as f:
+			# if "dataset_info" in dataset_features.keys():
+			# 	dataset_info = dataset_features["dataset_info"] + "\n"
+			# else:
+			dataset_info = ""
+			f.write(dataset_info + run_statistics_string)
 
 
